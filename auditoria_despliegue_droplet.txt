@@ -1,0 +1,53 @@
+AUDITORÍA Y BITÁCORA DE DESPLIEGUE EN DIGITALOCEAN
+===============================================
+Fecha: 25 de mayo de 2026
+Destino: Droplet 192.34.63.140
+Ruta remota: /app/miplazo
+Dominio: https://miplazo.kvdev.codes
+
+Este documento detalla el paso a paso exacto del despliegue, los problemas encontrados durante el proceso, cómo se resolvieron y las consideraciones finales para el correcto funcionamiento en producción.
+
+-------------------------------------------------------------------------------
+1. PASO A PASO DEL DESPLIEGUE
+-------------------------------------------------------------------------------
+
+Paso 1: Sincronización del Código Fuente
+Se utilizó rsync para transferir los archivos de desarrollo local al servidor de producción.
+Comando ejecutado localmente:
+$ rsync -avz --exclude='.git' --exclude='/api' --exclude='cookies.txt' --exclude='.gemini' ./ root@192.34.63.140:/app/miplazo/
+
+Paso 2: Creación de Variables de Entorno en Producción
+Se generó de forma segura un archivo de variables de entorno (.env) directamente en el droplet en la ruta /app/miplazo/.env.
+Para asegurar la confidencialidad y la robustez contra ataques criptográficos, se autogeneraron credenciales aleatorias seguras:
+- DB_PASSWORD: Clave aleatoria de 16 bytes hexadecimales generada mediante OpenSSL.
+- JWT_SECRET: Clave secreta aleatoria de 32 bytes hexadecimales para la firma y verificación de tokens JWT.
+
+Paso 3: Construcción e Inicio de Contenedores
+Se ejecutaron comandos remotos vía SSH para limpiar contenedores antiguos y reconstruir la imagen en limpio:
+$ ssh root@192.34.63.140 "cd /app/miplazo && docker compose down && docker compose up -d --build"
+
+Paso 4: Verificación de Registros (Logs)
+Se inspeccionaron los logs del contenedor backend api_prod para garantizar la correcta inicialización del sistema y conexión a la base de datos:
+$ ssh root@192.34.63.140 "cd /app/miplazo && docker compose logs api_prod"
+
+-------------------------------------------------------------------------------
+2. ERRORES DETECTADOS Y RESOLUCIÓN
+-------------------------------------------------------------------------------
+
+Caso de Error 1: Directorio no encontrado durante la fase de compilación en Docker
+- Síntoma: La ejecución de docker compose falló con el error:
+  "stat /app/cmd/api/main.go: directory not found" en el paso [builder 7/7] de Dockerfile.
+- Diagnóstico: El comando rsync original utilizaba el parámetro --exclude='api'. En rsync, un patrón de exclusión sin barra diagonal inicial se aplica recursivamente a cualquier archivo o directorio que contenga ese nombre. Esto causó que rsync omitiera por completo el directorio crítico cmd/api/.
+- Solución: Se modificó el comando de sincronización para anclar la exclusión al directorio raíz escribiendo --exclude='/api'. De esta forma, solo se excluye el binario compilado local en la raíz del proyecto y se transfieren correctamente las subcarpetas del código fuente Go.
+
+Caso de Error 2: Latencia de Inicio y Conexión de PostgreSQL
+- Síntoma: En el primer arranque, el contenedor de la API de Go puede intentar conectar a PostgreSQL antes de que el motor de la base de datos esté listo para aceptar conexiones en el puerto 5432, lo que tradicionalmente detendría la ejecución de la API.
+- Diagnóstico/Resolución: El backend implementa un loop de reintento automatizado. En los logs se evidenció que falló el Intento 1 y 2 por "connection refused", pero en el Intento 3 conectó con éxito, procediendo a la autogeneración correcta de las tablas e índices parciales en Postgres.
+
+-------------------------------------------------------------------------------
+3. AUDITORÍA DE SEGURIDAD Y CONFIGURACIÓN PRODUCTIVA
+-------------------------------------------------------------------------------
+
+- Cookie de Sesión Segura: La cookie "miplazo_session" tiene configurados los flags 'HttpOnly', 'SameSite=Strict' y 'Secure'. Para que el navegador del usuario acepte la cookie de sesión, las peticiones deben viajar obligatoriamente sobre HTTPS.
+- Reverse Proxy con Caddy: El servidor Caddy en el droplet escucha en el puerto 443 para el dominio 'miplazo.kvdev.codes', gestionando el certificado SSL automático de Let's Encrypt, y redirige de manera segura el tráfico interno al puerto 8080 del contenedor api_prod.
+- Límites de RAM y Swap: Para prevenir que el droplet de 512MB RAM detenga los contenedores por falta de memoria (OOM killer), se limitó el consumo en docker-compose.yaml a 128MB para la base de datos y 64MB para la API, apoyándose en la memoria Swap activa de 2GB en el sistema operativo Ubuntu.
