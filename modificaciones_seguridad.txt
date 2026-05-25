@@ -1273,5 +1273,9 @@ MEJORAS DE NEGOCIO Y CONSISTENCIA FINANCIERA (MAYO 2026)
    - Se añadieron acciones rápidas a cada tarjeta de meta:
      * **Vaciar**: Pone el saldo de la meta en $0 en un clic (devolviéndolo al balance general disponible).
      * **Aportar Todo**: Asigna el máximo balance libre disponible actual a la meta seleccionada (limitado por la diferencia para completar su monto objetivo).
+
+7. EDICIÓN FLEXIBLE DE METAS Y CONTROL DE FECHA LÍMITE (Deadline):
+   - En `internal/goals/goals.go`: Se refactorizó la actualización de metas para admitir la modificación opcional y segura del título, monto objetivo, progreso y fecha límite (`UpdateGoalRequest` con punteros). Valida de forma transaccional (`FOR UPDATE`) que la nueva fecha límite no sea en el pasado.
+   - En `ui/index.html`: Se integró la edición de la fecha límite en el modal de ajuste de metas y se inyectó una fila de atajos rápidos (`setGoalDeadlinePreset`) que permite extender la fecha límite desde hoy sumando 1 semana, 1 mes, 3 meses, 6 meses o 1 año de forma instantánea.
 ```
 
