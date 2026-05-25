@@ -34,8 +34,13 @@ func NewRouter(db *sql.DB) http.Handler {
 	goalHandler := goals.NewHandler(db)
 	txHandler := transactions.NewHandler(db) // <-- 2. Inicializamos el manejador de transacciones
 
+	// Inicializar Limitadores de Tasa
+	authLimiter := security.NewIPLimiter(10, time.Minute)
+	apiLimiter := security.NewIPLimiter(100, time.Minute)
+
 	// Rutas Públicas de Autenticación
 	r.Route("/auth", func(r chi.Router) {
+		r.Use(authLimiter.Limit)
 		r.Post("/register", userHandler.Register)
 		r.Post("/login", userHandler.Login)
 		r.Post("/logout", userHandler.Logout)
@@ -44,6 +49,7 @@ func NewRouter(db *sql.DB) http.Handler {
 	// Rutas Protegidas de la API (Requieren JWT)
 	r.Route("/api", func(r chi.Router) {
 		r.Use(security.AuthMiddleware(jwtSecret))
+		r.Use(apiLimiter.Limit)
 
 		// Subgrupo para Metas de Ahorro
 		r.Route("/goals", func(r chi.Router) {

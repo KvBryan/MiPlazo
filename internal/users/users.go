@@ -60,8 +60,10 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var creds Credentials
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		h.respondWithError(w, http.StatusBadRequest, "Formato JSON inválido")
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&creds); err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Cuerpo JSON inválido o campos desconocidos presentados")
 		return
 	}
 
@@ -110,8 +112,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var creds Credentials
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		h.respondWithError(w, http.StatusBadRequest, "Formato JSON inválido")
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&creds); err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Cuerpo JSON inválido o campos desconocidos presentados")
 		return
 	}
 

@@ -64,8 +64,10 @@ func (h *Handler) CreateGoal(w http.ResponseWriter, r *http.Request) {
     r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
     var req CreateGoalRequest
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        h.respondWithError(w, http.StatusBadRequest, "Cuerpo JSON inválido")
+    dec := json.NewDecoder(r.Body)
+    dec.DisallowUnknownFields()
+    if err := dec.Decode(&req); err != nil {
+        h.respondWithError(w, http.StatusBadRequest, "Cuerpo JSON inválido o campos desconocidos presentados")
         return
     }
 
@@ -215,8 +217,10 @@ func (h *Handler) UpdateProgress(w http.ResponseWriter, r *http.Request) {
     r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
     var req UpdateProgressRequest
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        h.respondWithError(w, http.StatusBadRequest, "Cuerpo JSON inválido")
+    dec := json.NewDecoder(r.Body)
+    dec.DisallowUnknownFields()
+    if err := dec.Decode(&req); err != nil {
+        h.respondWithError(w, http.StatusBadRequest, "Cuerpo JSON inválido o campos desconocidos presentados")
         return
     }
 
