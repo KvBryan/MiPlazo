@@ -28,8 +28,11 @@ type CreateGoalRequest struct {
     Deadline     string  `json:"deadline"` 
 }
 
-type UpdateProgressRequest struct {
-    CurrentAmount float64 `json:"current_amount"`
+type UpdateGoalRequest struct {
+	Title         *string  `json:"title"`
+	TargetAmount  *float64 `json:"target_amount"`
+	CurrentAmount *float64 `json:"current_amount"`
+	Deadline      *string  `json:"deadline"`
 }
 
 type GoalResponse struct {
@@ -200,89 +203,153 @@ func (h *Handler) GetGoals(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateProgress(w http.ResponseWriter, r *http.Request) {
-    userID, ok := security.GetUserID(r.Context())
-    if !ok {
-        h.respondWithError(w, http.StatusUnauthorized, "Usuario no autenticado")
-        return
-    }
+	userID, ok := security.GetUserID(r.Context())
+	if !ok {
+		h.respondWithError(w, http.StatusUnauthorized, "Usuario no autenticado")
+		return
+	}
 
-    goalIDStr := chi.URLParam(r, "id")
-    goalID, err := strconv.Atoi(goalIDStr)
-    if err != nil {
-        h.respondWithError(w, http.StatusBadRequest, "ID de meta inválido")
-        return
-    }
-
-    // 🔥 PARCHE DE SEGURIDAD: Limitar body a 1MB para mitigar ataques DoS
-    r.Body = http.MaxBytesReader(w, r.Body, 1048576)
-
-    var req UpdateProgressRequest
-    dec := json.NewDecoder(r.Body)
-    dec.DisallowUnknownFields()
-    if err := dec.Decode(&req); err != nil {
-        h.respondWithError(w, http.StatusBadRequest, "Cuerpo JSON inválido o campos desconocidos presentados")
-        return
-    }
-
-    if req.CurrentAmount < 0 {
-        h.respondWithError(w, http.StatusBadRequest, "El monto actual no puede ser menor a 0")
-        return
-    }
-
-	// 1. Calcular el balance neto de transacciones (ingresos - gastos)
-	var netBalance float64
-	balanceQuery := `
-		SELECT COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount ELSE -amount END), 0)
-		FROM transactions
-		WHERE user_id = $1 AND is_active = TRUE
-	`
-	err = h.db.QueryRowContext(r.Context(), balanceQuery, userID).Scan(&netBalance)
+	goalIDStr := chi.URLParam(r, "id")
+	goalID, err := strconv.Atoi(goalIDStr)
 	if err != nil {
-		h.respondWithError(w, http.StatusInternalServerError, "Error al verificar el balance financiero")
+		h.respondWithError(w, http.StatusBadRequest, "ID de meta inválido")
 		return
 	}
 
-	// 2. Calcular la suma de dinero ya retenido en OTRAS metas de ahorro
-	var otherGoalsAllocated float64
-	allocatedQuery := `
-		SELECT COALESCE(SUM(current_amount), 0)
-		FROM saving_goals
-		WHERE user_id = $1 AND id != $2 AND is_active = TRUE
-	`
-	err = h.db.QueryRowContext(r.Context(), allocatedQuery, userID, goalID).Scan(&otherGoalsAllocated)
+	// PARCHE DE SEGURIDAD: Limitar body a 1MB para mitigar ataques DoS
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	var req UpdateGoalRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Cuerpo JSON inválido o campos desconocidos presentados")
+		return
+	}
+
+	// Iniciar transacción de base de datos para asegurar consistencia
+	tx, err := h.db.BeginTx(r.Context(), nil)
 	if err != nil {
-		h.respondWithError(w, http.StatusInternalServerError, "Error al verificar montos asignados en otras metas")
+		h.respondWithError(w, http.StatusInternalServerError, "Error interno de base de datos")
 		return
 	}
+	defer tx.Rollback()
 
-	// 3. Validar consistencia financiera (Monto solicitado + Monto en otras metas <= Balance General Neto)
-	if req.CurrentAmount+otherGoalsAllocated > netBalance {
-		h.respondWithError(w, http.StatusBadRequest, "Saldo insuficiente en tu balance general para cubrir este monto de ahorro")
-		return
-	}
+	// 1. Obtener valores actuales de la meta
+	var currentTitle string
+	var currentTargetAmount float64
+	var currentAmount float64
+	var currentDeadline time.Time
 
-	query := `
-		UPDATE saving_goals
-		SET current_amount = $1
-		WHERE id = $2 AND user_id = $3 AND is_active = TRUE
+	selectQuery := `
+		SELECT title, target_amount, current_amount, deadline 
+		FROM saving_goals 
+		WHERE id = $1 AND user_id = $2 AND is_active = TRUE 
+		FOR UPDATE
 	`
-	result, err := h.db.ExecContext(r.Context(), query, req.CurrentAmount, goalID, userID)
+	err = tx.QueryRowContext(r.Context(), selectQuery, goalID, userID).Scan(&currentTitle, &currentTargetAmount, &currentAmount, &currentDeadline)
 	if err != nil {
-		h.respondWithError(w, http.StatusInternalServerError, "No se pudo actualizar el progreso de la meta")
-		return
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil || rowsAffected == 0 {
 		h.respondWithError(w, http.StatusNotFound, "Meta de ahorro no encontrada o no pertenece al usuario")
+		return
+	}
+
+	// 2. Aplicar actualizaciones parciales según el JSON recibido
+	newTitle := currentTitle
+	if req.Title != nil {
+		newTitle = *req.Title
+		if newTitle == "" {
+			h.respondWithError(w, http.StatusBadRequest, "El título no puede estar vacío")
+			return
+		}
+	}
+
+	newTargetAmount := currentTargetAmount
+	if req.TargetAmount != nil {
+		newTargetAmount = *req.TargetAmount
+		if newTargetAmount <= 0 {
+			h.respondWithError(w, http.StatusBadRequest, "El monto objetivo debe ser mayor a 0")
+			return
+		}
+	}
+
+	newAmount := currentAmount
+	if req.CurrentAmount != nil {
+		newAmount = *req.CurrentAmount
+		if newAmount < 0 {
+			h.respondWithError(w, http.StatusBadRequest, "El monto actual no puede ser menor a 0")
+			return
+		}
+
+		// Validar consistencia financiera (Monto solicitado + Monto en otras metas <= Balance General Neto)
+		var netBalance float64
+		balanceQuery := `
+			SELECT COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount ELSE -amount END), 0)
+			FROM transactions
+			WHERE user_id = $1 AND is_active = TRUE
+		`
+		err = tx.QueryRowContext(r.Context(), balanceQuery, userID).Scan(&netBalance)
+		if err != nil {
+			h.respondWithError(w, http.StatusInternalServerError, "Error al verificar el balance financiero")
+			return
+		}
+
+		var otherGoalsAllocated float64
+		allocatedQuery := `
+			SELECT COALESCE(SUM(current_amount), 0)
+			FROM saving_goals
+			WHERE user_id = $1 AND id != $2 AND is_active = TRUE
+		`
+		err = tx.QueryRowContext(r.Context(), allocatedQuery, userID, goalID).Scan(&otherGoalsAllocated)
+		if err != nil {
+			h.respondWithError(w, http.StatusInternalServerError, "Error al verificar montos asignados en otras metas")
+			return
+		}
+
+		if newAmount+otherGoalsAllocated > netBalance {
+			h.respondWithError(w, http.StatusBadRequest, "Saldo insuficiente en tu balance general para cubrir este monto de ahorro")
+			return
+		}
+	}
+
+	newDeadline := currentDeadline
+	if req.Deadline != nil {
+		parsedDeadline, err := time.Parse("2006-01-02", *req.Deadline)
+		if err != nil {
+			h.respondWithError(w, http.StatusBadRequest, "Formato de fecha límite inválido, use AAAA-MM-DD")
+			return
+		}
+		if parsedDeadline.Before(time.Now().Truncate(24 * time.Hour)) {
+			h.respondWithError(w, http.StatusBadRequest, "La fecha límite debe ser en el futuro")
+			return
+		}
+		newDeadline = parsedDeadline
+	}
+
+	// 3. Ejecutar la actualización en base de datos
+	updateQuery := `
+		UPDATE saving_goals
+		SET title = $1, target_amount = $2, current_amount = $3, deadline = $4
+		WHERE id = $5 AND user_id = $6 AND is_active = TRUE
+	`
+	_, err = tx.ExecContext(r.Context(), updateQuery, newTitle, newTargetAmount, newAmount, newDeadline, goalID, userID)
+	if err != nil {
+		h.respondWithError(w, http.StatusInternalServerError, "No se pudo actualizar la meta de ahorro")
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		h.respondWithError(w, http.StatusInternalServerError, "Error al confirmar cambios")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"message":        "Progreso de la meta actualizado correctamente",
-		"current_amount": req.CurrentAmount,
+		"message":        "Meta de ahorro actualizada correctamente",
+		"title":          newTitle,
+		"target_amount":  newTargetAmount,
+		"current_amount": newAmount,
+		"deadline":       newDeadline,
 	})
 }
 
