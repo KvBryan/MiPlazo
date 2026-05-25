@@ -1,0 +1,47 @@
+REGISTRO DE MODIFICACIONES DEL FRONTEND Y ARCHIVOS ESTÁTICOS
+===========================================================
+
+Este documento describe de manera organizada los cambios realizados a la interfaz de usuario (ui/) y la configuración de rutas/servidores estáticos en el proyecto 'MiPlazo'.
+
+-----------------------------------------------------------
+RESUMEN DE MODIFICACIONES DE FRONTEND
+-----------------------------------------------------------
+1. SERVIDOR DE ARCHIVOS ESTÁTICOS EN EL BACKEND:
+   - Se configuró el enrutador de Go (internal/router/router.go) para servir archivos HTML/JS/CSS desde la carpeta 'ui/' usando 'http.FileServer(http.Dir("ui"))'.
+   - Se utilizó el comodín de ruta "/*" en Chi para capturar cualquier ruta no resuelta por la API y dirigirla al frontend.
+   - Las cabeceras de seguridad de OWASP (Content-Security-Policy, X-Frame-Options, etc.) se aplican correctamente también a todas las peticiones de archivos estáticos.
+
+-----------------------------------------------------------
+DETALLES DEL CÓDIGO INCORPORADO
+-----------------------------------------------------------
+
+1. ARCHIVO: internal/router/router.go (Fragmento de configuración de archivos estáticos)
+```go
+	// Servidor de archivos estáticos para la interfaz de usuario en 'ui/'
+	// Captura todas las peticiones restantes y les aplica los middlewares globales (ej: securityHeaders)
+	fs := http.FileServer(http.Dir("ui"))
+	r.Handle("/*", fs)
+```
+
+2. ARCHIVO: ui/index.html
+Ubicación: Interfaz de usuario (Single Page Application)
+Cambios: Creación de la pantalla de login/registro y el dashboard interactivo de finanzas de MiPlazo.
+Características principales:
+   - Framework Visual: Tailwind CSS por CDN.
+   - Iconos: Integración con Lucide Icons cargado por unpkg CDN.
+   - Diseño Premium: Fondo bg-slate-50, tarjetas estilizadas con bordes rounded-xl y sombras discretas.
+   - Interactividad SPA: Manipulación dinámica del DOM en JS nativo (fetch de login, registro, consulta de metas y transacciones).
+   - Seguridad OWASP en Frontend:
+     * Ocultación por defecto del Dashboard tras pantalla de Login si no hay sesión activa.
+     * Escapado de entidades HTML (función escapeHTML) para evitar ataques de Cross-Site Scripting Reflejado en las entradas del usuario.
+     * Prevención de DoS limitando el tamaño máximo del payload (configurado previamente en backend).
+     * Autenticación basada en Cookies HttpOnly (invisible para JS, transparente para el navegador).
+
+3. MEJORAS DE NEGOCIO Y DIÁLOGOS DE CONFIRMACIÓN (MAYO 2026):
+   - Integración del botón de logout para hacer petición POST a `/auth/logout` y limpiar de inmediato el estado del cliente redirigiéndolo al login.
+   - Creación del Pop-up modal de edición con Tailwind CSS y Lucide Icons, permitiendo actualizar cualquier transacción mediante peticiones PUT a `/api/transactions/{id}`.
+   - Diálogo de advertencia contable para la eliminación de transacciones con confirmación previa.
+   - Validación del balance general libre del usuario antes de permitir la aportación a las metas de ahorro. Si el balance es menor o igual a cero, deshabilita visualmente los botones de aportación, y restringe aportaciones mayores al saldo líquido restante disponible.
+
+4. CORRECCIÓN DE ERROR CRÍTICO DE SINTAXIS (MAYO 2026):
+   - Se corrigió una asignación errónea en la función `loadDashboardData` (`Invalid left-hand side in assignment`) al resolver el parseo del fetch de metas (`goalsRes.json()`). La lógica fue re-estructurada a un asignamiento directo estándar y seguro para evitar fallas en el intérprete JS del navegador.

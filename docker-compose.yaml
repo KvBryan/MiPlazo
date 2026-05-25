@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: miplazo_db
+    environment:
+      POSTGRES_USER: miplazo_user
+      POSTGRES_PASSWORD: MiPlazoSecurePassword2026
+      POSTGRES_DB: miplazo_backend
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=20"] # Optimización estricta de RAM
+
+volumes:
+  postgres_data:

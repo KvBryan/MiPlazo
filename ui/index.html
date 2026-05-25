@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiPlazo - Gestión Financiera Inteligente</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        /* Custom scrollbar for table style */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 transition-all duration-300">
+
+    <!-- PANTALLA DE ACCESO (LOGIN/REGISTRO) -->
+    <div id="auth-screen" class="flex min-h-screen items-center justify-center p-4 bg-slate-900 bg-opacity-40 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full overflow-hidden transition-all duration-300 transform scale-100">
+            <!-- Encabezado Auth -->
+            <div class="bg-emerald-600 px-6 py-8 text-center text-white relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-600 opacity-90"></div>
+                <div class="relative z-10">
+                    <div class="inline-flex items-center justify-center p-3 bg-white bg-opacity-10 rounded-xl mb-3">
+                        <i data-lucide="wallet" class="h-8 w-8 text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-tight">MiPlazo</h1>
+                    <p class="text-emerald-100 text-sm mt-1">Toma el control de tus metas y finanzas</p>
+                </div>
+            </div>
+
+            <!-- Formularios de Auth -->
+            <div class="p-6">
+                <!-- Selector de Pestañas (Tabs) -->
+                <div class="flex border-b border-slate-100 mb-6">
+                    <button id="tab-login-btn" class="flex-1 pb-3 text-center font-semibold text-emerald-600 border-b-2 border-emerald-600 focus:outline-none transition-colors" onclick="switchAuthTab('login')">
+                        Iniciar Sesión
+                    </button>
+                    <button id="tab-register-btn" class="flex-1 pb-3 text-center font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-colors" onclick="switchAuthTab('register')">
+                        Registrarse
+                    </button>
+                </div>
+
+                <!-- Contenedor de Alertas de Acceso -->
+                <div id="auth-alert" class="hidden mb-4 p-3 rounded-lg text-sm flex items-center gap-2"></div>
+
+                <!-- Formulario de Iniciar Sesión -->
+                <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Correo Electrónico</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                <i data-lucide="mail" class="h-4 w-4"></i>
+                            </span>
+                            <input type="email" id="login-email" required placeholder="correo@ejemplo.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Contraseña</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                <i data-lucide="lock" class="h-4 w-4"></i>
+                            </span>
+                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-700/30 flex items-center justify-center gap-2 text-sm mt-6">
+                        <span>Ingresar a la Plataforma</span>
+                        <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                    </button>
+                </form>
+
+                <!-- Formulario de Registro -->
+                <form id="register-form" class="space-y-4 hidden" onsubmit="handleRegister(event)">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Correo Electrónico</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                <i data-lucide="mail" class="h-4 w-4"></i>
+                            </span>
+                            <input type="email" id="register-email" required placeholder="correo@ejemplo.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Contraseña (Mínimo 8 caracteres)</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                <i data-lucide="lock" class="h-4 w-4"></i>
+                            </span>
+                            <input type="password" id="register-password" required minlength="8" placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-700/30 flex items-center justify-center gap-2 text-sm mt-6">
+                        <span>Crear Cuenta Nueva</span>
+                        <i data-lucide="user-plus" class="h-4 w-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA PRINCIPAL DEL DASHBOARD (INICIALMENTE OCULTA) -->
+    <div id="dashboard-screen" class="hidden min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-100 sticky top-0 z-40 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+                <!-- Logo -->
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <i data-lucide="wallet" class="h-6 w-6"></i>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight text-slate-900">MiPlazo</span>
+                </div>
+
+                <!-- Info y Cierre -->
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <span id="user-email-display" class="block text-xs font-semibold text-slate-500">usuario@miplazo.com</span>
+                        <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">Sesión Segura OWASP</span>
+                    </div>
+                    <button onclick="handleLogout()" class="px-4 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all text-xs font-semibold flex items-center gap-2">
+                        <i data-lucide="log-out" class="h-4 w-4"></i>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Contenido del Dashboard -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            <!-- Panel Rápido de Balances (KPIs) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Net Balance -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Balance General Neto</span>
+                        <h3 id="balance-amount" class="text-2xl font-bold text-slate-800 mt-1">$0.00</h3>
+                        <span id="free-balance-display" class="text-[10px] text-slate-400 font-semibold mt-1 block">Disponible para metas: $0.00</span>
+                    </div>
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                        <i data-lucide="scale" class="h-6 w-6"></i>
+                    </div>
+                </div>
+                <!-- Income -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Ingresos</span>
+                        <h3 id="income-amount" class="text-2xl font-bold text-emerald-600 mt-1">$0.00</h3>
+                    </div>
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+                        <i data-lucide="trending-up" class="h-6 w-6"></i>
+                    </div>
+                </div>
+                <!-- Expenses -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Gastos</span>
+                        <h3 id="expense-amount" class="text-2xl font-bold text-rose-600 mt-1">$0.00</h3>
+                    </div>
+                    <div class="p-3 bg-rose-50 text-rose-600 rounded-2xl">
+                        <i data-lucide="trending-down" class="h-6 w-6"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenido Core Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Columna Izquierda: Metas y Registrador -->
+                <div class="space-y-8 lg:col-span-1">
+                    <!-- SECCIÓN CORE: Metas de Ahorro -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="target" class="text-emerald-600 h-5 w-5"></i>
+                                <span>Metas de Ahorro</span>
+                            </h2>
+                            <button onclick="toggleGoalForm()" class="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors" title="Crear Meta Nueva">
+                                <i data-lucide="plus" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+
+                        <!-- Formulario Oculto para Crear Meta -->
+                        <form id="goal-form" class="space-y-3 hidden bg-slate-50 p-4 rounded-xl border border-slate-200/60" onsubmit="handleCreateGoal(event)">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Título de la Meta</label>
+                                <input type="text" id="goal-title" required placeholder="Ej: Curso de Trading" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Monto Objetivo</label>
+                                    <input type="number" id="goal-target" required min="1" step="any" placeholder="1000" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs font-semibold">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Límite</label>
+                                    <input type="date" id="goal-deadline" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs">
+                                </div>
+                            </div>
+                            <div class="flex gap-2 mt-2">
+                                <button type="button" onclick="toggleGoalForm()" class="flex-1 py-1.5 border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-500 text-[10px] font-bold transition-colors">Cancelar</button>
+                                <button type="submit" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow transition-colors">Guardar</button>
+                            </div>
+                        </form>
+
+                        <!-- Contenedor Dinámico de Metas -->
+                        <div id="goals-container" class="space-y-4">
+                            <!-- Metas se cargan aquí -->
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN OPERATIVA: Formulario de Registro -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <!-- Pestañas de Tipo de Operación -->
+                        <div class="flex border-b border-slate-100">
+                            <button id="tab-income-btn" class="flex-1 py-3 text-center font-bold text-emerald-600 border-b-2 border-emerald-600 focus:outline-none transition-all text-xs" onclick="switchTxFormType('INCOME')">
+                                <i data-lucide="arrow-down-left" class="inline h-3.5 w-3.5 mr-1"></i>Ingreso
+                            </button>
+                            <button id="tab-expense-btn" class="flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-all text-xs" onclick="switchTxFormType('EXPENSE')">
+                                <i data-lucide="arrow-up-right" class="inline h-3.5 w-3.5 mr-1"></i>Gasto
+                            </button>
+                        </div>
+
+                        <!-- Formulario de Transacción -->
+                        <form id="tx-form" class="p-6 space-y-4" onsubmit="handleCreateTransaction(event)">
+                            <input type="hidden" id="tx-type" value="INCOME">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Monto ($)</label>
+                                <input type="number" id="tx-amount" required min="0.01" step="any" placeholder="0.00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Descripción</label>
+                                <input type="text" id="tx-description" required placeholder="Concepto de la transacción" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha</label>
+                                <input type="date" id="tx-date" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                            </div>
+                            <button type="submit" id="tx-submit-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-md shadow-emerald-600/10 flex items-center justify-center gap-2 text-xs mt-6">
+                                <i data-lucide="plus-circle" class="h-4 w-4"></i>
+                                <span>Registrar Ingreso</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Tabla de Transacciones -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-full space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="file-text" class="text-emerald-600 h-5 w-5"></i>
+                                <span>Historial de Transacciones</span>
+                            </h2>
+                            <span id="tx-count" class="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-200/40">0 registros</span>
+                        </div>
+
+                        <!-- Tabla Excel-Style Contenedor -->
+                        <div class="overflow-x-auto custom-scrollbar border border-slate-200/60 rounded-xl">
+                            <table class="min-w-full divide-y divide-slate-100 text-sm">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Fecha</th>
+                                        <th scope="col" class="px-6 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Descripción</th>
+                                        <th scope="col" class="px-6 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Tipo</th>
+                                        <th scope="col" class="px-6 py-3.5 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Monto</th>
+                                        <th scope="col" class="px-6 py-3.5 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table-body" class="bg-white divide-y divide-slate-100">
+                                    <!-- Carga dinámica de transacciones -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL DE EDICIÓN DE TRANSACCIÓN -->
+    <div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900 bg-opacity-50 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="edit-3" class="text-emerald-600 h-4 w-4"></i>
+                    <span>Editar Transacción</span>
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+            <form id="edit-tx-form" onsubmit="handleUpdateTransaction(event)" class="space-y-4">
+                <input type="hidden" id="edit-tx-id">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tipo</label>
+                    <select id="edit-tx-type" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs">
+                        <option value="INCOME">Ingreso</option>
+                        <option value="EXPENSE">Gasto</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Monto ($)</label>
+                    <input type="number" id="edit-tx-amount" required min="0.01" step="any" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs font-semibold">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Descripción</label>
+                    <input type="text" id="edit-tx-description" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha</label>
+                    <input type="date" id="edit-tx-date" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeEditModal()" class="flex-1 py-2 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-500 text-xs font-bold transition-colors">Cancelar</button>
+                    <button type="submit" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow transition-colors">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT DE INTERACTIVIDAD GENERAL (DOM & CLIENTE API) -->
+    <script>
+        // Configuración de fecha por defecto para hoy
+        document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('goal-deadline').value = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        // Estado Global del Cliente
+        let goalsData = [];
+        let transactionsData = [];
+        let freeBalanceGlobal = 0; // Guardado global de balance libre disponible
+
+        // Inicializar iconos
+        lucide.createIcons();
+
+        // 1. Alternar pestañas en Pantalla de Acceso
+        function switchAuthTab(tab) {
+            const loginBtn = document.getElementById('tab-login-btn');
+            const registerBtn = document.getElementById('tab-register-btn');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const alertBox = document.getElementById('auth-alert');
+
+            alertBox.classList.add('hidden');
+
+            if (tab === 'login') {
+                loginBtn.className = "flex-1 pb-3 text-center font-semibold text-emerald-600 border-b-2 border-emerald-600 focus:outline-none transition-colors";
+                registerBtn.className = "flex-1 pb-3 text-center font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-colors";
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+            } else {
+                registerBtn.className = "flex-1 pb-3 text-center font-semibold text-emerald-600 border-b-2 border-emerald-600 focus:outline-none transition-colors";
+                loginBtn.className = "flex-1 pb-3 text-center font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-colors";
+                registerForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        // 2. Mostrar Alertas de Acceso
+        function showAuthAlert(type, message) {
+            const alertBox = document.getElementById('auth-alert');
+            alertBox.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'bg-emerald-50', 'text-emerald-700');
+            
+            if (type === 'error') {
+                alertBox.classList.add('bg-red-50', 'text-red-700');
+                alertBox.innerHTML = `<i data-lucide="alert-circle" class="h-4 w-4"></i> <span>${message}</span>`;
+            } else {
+                alertBox.classList.add('bg-emerald-50', 'text-emerald-700');
+                alertBox.innerHTML = `<i data-lucide="check-circle" class="h-4 w-4"></i> <span>${message}</span>`;
+            }
+            lucide.createIcons();
+        }
+
+        // 3. Manejo de Login
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showAuthAlert('error', data.error || 'Credenciales incorrectas');
+                    return;
+                }
+
+                // Autenticado correctamente
+                document.getElementById('login-email').value = '';
+                document.getElementById('login-password').value = '';
+                showAuthAlert('success', 'Sesión iniciada con éxito. Cargando...');
+                
+                // Cargar la interfaz
+                setTimeout(checkAuthentication, 800);
+            } catch (err) {
+                showAuthAlert('error', 'Error de red al intentar conectar.');
+            }
+        }
+
+        // 4. Manejo de Registro
+        async function handleRegister(event) {
+            event.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            try {
+                const response = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showAuthAlert('error', data.error || 'Error al registrar el usuario');
+                    return;
+                }
+
+                document.getElementById('register-email').value = '';
+                document.getElementById('register-password').value = '';
+                showAuthAlert('success', 'Usuario registrado con éxito. Ya puedes iniciar sesión.');
+                
+                // Cambiar a la pestaña de login
+                setTimeout(() => switchAuthTab('login'), 1500);
+            } catch (err) {
+                showAuthAlert('error', 'Error de red al intentar conectar.');
+            }
+        }
+
+        // 5. Cierre de Sesión (Logout)
+        async function handleLogout() {
+            try {
+                const response = await fetch('/auth/logout', { method: 'POST' });
+                if (response.ok) {
+                    goalsData = [];
+                    transactionsData = [];
+                    freeBalanceGlobal = 0;
+                    showScreen('auth');
+                    showAuthAlert('success', 'Sesión cerrada correctamente.');
+                } else {
+                    // Forzar recarga si falla por red
+                    window.location.reload();
+                }
+            } catch(e) {
+                window.location.reload();
+            }
+        }
+
+        // 6. Verificar Autenticación (Chequea la cookie mediante llamada al health o metas de la API)
+        async function checkAuthentication() {
+            try {
+                const response = await fetch('/api/goals');
+                
+                if (response.status === 401) {
+                    showScreen('auth');
+                    return;
+                }
+
+                if (response.ok) {
+                    const goals = await response.json();
+                    goalsData = goals;
+                    
+                    document.getElementById('user-email-display').innerText = 'Sesión Activa';
+                    
+                    showScreen('dashboard');
+                    await loadDashboardData();
+                } else {
+                    showScreen('auth');
+                }
+            } catch (err) {
+                showScreen('auth');
+            }
+        }
+
+        // Alternar pantallas del cliente
+        function showScreen(screen) {
+            const authScreen = document.getElementById('auth-screen');
+            const dashboardScreen = document.getElementById('dashboard-screen');
+
+            if (screen === 'auth') {
+                authScreen.classList.remove('hidden');
+                dashboardScreen.classList.add('hidden');
+            } else {
+                authScreen.classList.add('hidden');
+                dashboardScreen.classList.remove('hidden');
+            }
+        }
+
+        // 7. Cargar/Refrescar Datos del Dashboard
+        async function loadDashboardData() {
+            try {
+                // Fetch de Metas
+                const goalsRes = await fetch('/api/goals');
+                if (goalsRes.ok) goalsData = await goalsRes.json();
+
+                // Fetch de Transacciones
+                const txRes = await fetch('/api/transactions');
+                if (txRes.ok) transactionsData = await txRes.json();
+
+                renderDashboard();
+            } catch (err) {
+                console.error("Error al cargar los datos financieros:", err);
+            }
+        }
+
+        // 8. Renderizar Todos los Componentes Visuales
+        function renderDashboard() {
+            renderKPIs();
+            renderGoals();
+            renderTransactions();
+            lucide.createIcons();
+        }
+
+        // 8a. Render de KPIs (Ingresos, Gastos, Balance Neto, Balance Libre)
+        function renderKPIs() {
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            transactionsData.forEach(tx => {
+                if (tx.type === 'INCOME') {
+                    totalIncome += tx.amount;
+                } else if (tx.type === 'EXPENSE') {
+                    totalExpense += tx.amount;
+                }
+            });
+
+            const netBalance = totalIncome - totalExpense;
+
+            // Calcular dinero retenido/asignado en todas las metas
+            let totalAllocated = 0;
+            goalsData.forEach(g => {
+                totalAllocated += g.current_amount;
+            });
+
+            // Saldo real libre para metas
+            freeBalanceGlobal = netBalance - totalAllocated;
+            if (freeBalanceGlobal < 0) freeBalanceGlobal = 0;
+
+            document.getElementById('income-amount').innerText = formatCurrency(totalIncome);
+            document.getElementById('expense-amount').innerText = formatCurrency(totalExpense);
+            document.getElementById('free-balance-display').innerText = `Disponible para metas: ${formatCurrency(freeBalanceGlobal)}`;
+            
+            const balanceEl = document.getElementById('balance-amount');
+            balanceEl.innerText = formatCurrency(netBalance);
+            if (netBalance < 0) {
+                balanceEl.className = "text-2xl font-bold text-rose-600 mt-1";
+            } else {
+                balanceEl.className = "text-2xl font-bold text-slate-800 mt-1";
+            }
+        }
+
+        // 8b. Render de Tarjetas de Metas de Ahorro
+        function renderGoals() {
+            const container = document.getElementById('goals-container');
+            container.innerHTML = '';
+
+            if (goalsData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        <i data-lucide="target" class="h-8 w-8 mx-auto mb-2 opacity-50"></i>
+                        <p class="text-xs">No tienes metas de ahorro registradas.</p>
+                        <button onclick="toggleGoalForm()" class="text-xs text-emerald-600 font-bold hover:underline mt-1">Crea tu primera meta</button>
+                    </div>
+                `;
+                return;
+            }
+
+            goalsData.forEach(goal => {
+                const percent = Math.min(100, Math.max(0, goal.progress_percentage)).toFixed(0);
+                const deadlineDate = new Date(goal.deadline).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
+
+                // Validación dinámica: si el balance libre es menor o igual a cero, deshabilitar aportaciones
+                const isDisabled = freeBalanceGlobal <= 0;
+                const buttonClass = isDisabled 
+                    ? "w-1/3 py-1.5 bg-slate-300 cursor-not-allowed text-slate-500 rounded-lg text-[10px] font-bold shadow-none flex items-center justify-center gap-1"
+                    : "w-1/3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow transition-colors flex items-center justify-center gap-1";
+
+                const card = document.createElement('div');
+                card.className = "p-4 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100/50 transition-all space-y-3 relative group";
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h4 class="font-bold text-sm text-slate-800">${escapeHTML(goal.title)}</h4>
+                            <span class="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                                <i data-lucide="calendar" class="h-3 w-3"></i>
+                                <span>Límite: ${deadlineDate}</span>
+                            </span>
+                        </div>
+                        <button onclick="handleDeleteGoal(${goal.id})" class="text-slate-300 hover:text-rose-600 p-1 rounded transition-colors opacity-0 group-hover:opacity-100" title="Eliminar Meta">
+                            <i data-lucide="trash-2" class="h-4 w-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- Progreso -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-slate-600">${formatCurrency(goal.current_amount)} de ${formatCurrency(goal.target_amount)}</span>
+                            <span class="text-emerald-600">${percent}%</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Datos Desglosados -->
+                    <div class="grid grid-cols-2 gap-2 text-[10px] bg-white p-2.5 rounded-lg border border-slate-200/50">
+                        <div>
+                            <span class="text-slate-400 block">Faltan meses/semanas</span>
+                            <span class="font-bold text-slate-700">${goal.months_remaining.toFixed(0)} meses / ${goal.weeks_remaining.toFixed(0)} sem.</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block">Ahorro Requerido</span>
+                            <span class="font-bold text-emerald-600 block">${formatCurrency(goal.monthly_saving_required)} / mes</span>
+                            <span class="font-bold text-teal-600">${formatCurrency(goal.weekly_saving_required)} / sem.</span>
+                        </div>
+                    </div>
+
+                    <!-- Aportación Rápida -->
+                    <div class="flex items-center gap-2 pt-1.5">
+                        <input type="number" id="contribution-${goal.id}" ${isDisabled ? 'disabled' : ''} step="any" placeholder="${isDisabled ? 'Sin saldo' : 'Aportar ($)'}" class="w-2/3 px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500 disabled:bg-slate-200 disabled:text-slate-400">
+                        <button onclick="addProgress(${goal.id}, ${goal.current_amount})" ${isDisabled ? 'disabled' : ''} class="${buttonClass}">
+                            <i data-lucide="plus" class="h-3 w-3"></i>
+                            <span>Sumar</span>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 8c. Render de Tabla Contable de Transacciones
+        function renderTransactions() {
+            const tbody = document.getElementById('transactions-table-body');
+            tbody.innerHTML = '';
+
+            document.getElementById('tx-count').innerText = `${transactionsData.length} registros`;
+
+            if (transactionsData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-xs">
+                            <i data-lucide="list" class="h-8 w-8 mx-auto mb-2 opacity-50"></i>
+                            No hay transacciones cargadas en este período.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            transactionsData.forEach(tx => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/50 transition-colors";
+                
+                const txDate = new Date(tx.transaction_date).toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                
+                let typeBadge = '';
+                let amountClass = '';
+                
+                if (tx.type === 'INCOME') {
+                    typeBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/50"><i data-lucide="arrow-down-left" class="h-3 w-3"></i> Ingreso</span>`;
+                    amountClass = "px-6 py-4 text-right whitespace-nowrap text-sm font-bold text-emerald-600";
+                } else {
+                    typeBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/50"><i data-lucide="arrow-up-right" class="h-3 w-3"></i> Gasto</span>`;
+                    amountClass = "px-6 py-4 text-right whitespace-nowrap text-sm font-bold text-rose-600";
+                }
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500 font-medium">${txDate}</td>
+                    <td class="px-6 py-4 text-slate-700 font-semibold text-xs max-w-xs truncate" title="${escapeHTML(tx.description)}">${escapeHTML(tx.description)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xs">${typeBadge}</td>
+                    <td class="${amountClass}">${formatCurrency(tx.amount)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-xs">
+                        <div class="flex justify-center gap-1.5">
+                            <button onclick="openEditModal(${tx.id})" class="text-slate-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-slate-100 transition-all" title="Editar">
+                                <i data-lucide="edit-3" class="h-4 w-4"></i>
+                            </button>
+                            <button onclick="handleDeleteTransaction(${tx.id})" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-100 transition-all" title="Eliminar">
+                                <i data-lucide="trash-2" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 9. Alternar Formulario de Metas
+        function toggleGoalForm() {
+            const form = document.getElementById('goal-form');
+            form.classList.toggle('hidden');
+        }
+
+        // 10. Crear Meta
+        async function handleCreateGoal(event) {
+            event.preventDefault();
+            const title = document.getElementById('goal-title').value;
+            const target_amount = parseFloat(document.getElementById('goal-target').value);
+            const deadline = document.getElementById('goal-deadline').value;
+
+            try {
+                const response = await fetch('/api/goals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, target_amount, deadline })
+                });
+
+                if (response.ok) {
+                    document.getElementById('goal-title').value = '';
+                    document.getElementById('goal-target').value = '';
+                    toggleGoalForm();
+                    await loadDashboardData();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al guardar la meta');
+                }
+            } catch (err) {
+                alert('Error al conectar con la API');
+            }
+        }
+
+        // 11. Sumar Progreso a una Meta (con validaciones contables del balance libre disponible)
+        async function addProgress(goalId, currentAmount) {
+            const contributionInput = document.getElementById(`contribution-${goalId}`);
+            const contribution = parseFloat(contributionInput.value);
+
+            if (isNaN(contribution) || contribution <= 0) {
+                alert("Por favor, introduce un monto válido superior a 0.");
+                return;
+            }
+
+            // Validar contra el balance libre disponible antes de mandar al backend
+            if (contribution > freeBalanceGlobal) {
+                alert(`Operación Denegada: Saldo insuficiente en tu balance general. Tu saldo libre disponible para asignar a metas es de: ${formatCurrency(freeBalanceGlobal)}`);
+                return;
+            }
+
+            const newAmount = currentAmount + contribution;
+
+            try {
+                const response = await fetch(`/api/goals/${goalId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ current_amount: newAmount })
+                });
+
+                if (response.ok) {
+                    contributionInput.value = '';
+                    await loadDashboardData();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'No se pudo actualizar el ahorro');
+                }
+            } catch (err) {
+                alert('Error de red al actualizar la meta');
+            }
+        }
+
+        // 12. Eliminar Meta
+        async function handleDeleteGoal(goalId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar esta meta de ahorro?')) return;
+
+            try {
+                const response = await fetch(`/api/goals/${goalId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    await loadDashboardData();
+                } else {
+                    alert('No se pudo eliminar la meta.');
+                }
+            } catch (err) {
+                alert('Error al contactar con la API.');
+            }
+        }
+
+        // 13. Alternar tipo de formulario de transacción (Ingreso/Gasto)
+        function switchTxFormType(type) {
+            const typeInput = document.getElementById('tx-type');
+            const submitBtn = document.getElementById('tx-submit-btn');
+            const tabIncome = document.getElementById('tab-income-btn');
+            const tabExpense = document.getElementById('tab-expense-btn');
+
+            typeInput.value = type;
+
+            if (type === 'INCOME') {
+                tabIncome.className = "flex-1 py-3 text-center font-bold text-emerald-600 border-b-2 border-emerald-600 focus:outline-none transition-all text-xs";
+                tabExpense.className = "flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-all text-xs";
+                submitBtn.className = "w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-md shadow-emerald-600/10 flex items-center justify-center gap-2 text-xs mt-6";
+                submitBtn.innerHTML = `<i data-lucide="plus-circle" class="h-4 w-4"></i> <span>Registrar Ingreso</span>`;
+            } else {
+                tabExpense.className = "flex-1 py-3 text-center font-bold text-rose-600 border-b-2 border-rose-600 focus:outline-none transition-all text-xs";
+                tabIncome.className = "flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-all text-xs";
+                submitBtn.className = "w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl transition-all shadow-md shadow-rose-600/10 flex items-center justify-center gap-2 text-xs mt-6";
+                submitBtn.innerHTML = `<i data-lucide="minus-circle" class="h-4 w-4"></i> <span>Registrar Gasto</span>`;
+            }
+            lucide.createIcons();
+        }
+
+        // 14. Crear Transacción
+        async function handleCreateTransaction(event) {
+            event.preventDefault();
+            const type = document.getElementById('tx-type').value;
+            const amount = parseFloat(document.getElementById('tx-amount').value);
+            const description = document.getElementById('tx-description').value;
+            const transaction_date = document.getElementById('tx-date').value;
+
+            try {
+                const response = await fetch('/api/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, amount, description, transaction_date })
+                });
+
+                if (response.ok) {
+                    document.getElementById('tx-amount').value = '';
+                    document.getElementById('tx-description').value = '';
+                    await loadDashboardData();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al guardar la transacción');
+                }
+            } catch (err) {
+                alert('Error al contactar con el servidor');
+            }
+        }
+
+        // 15. Eliminar Transacción (Confirmación con advertencia de balance de ahorro)
+        async function handleDeleteTransaction(txId) {
+            const confirmDelete = confirm('¿Estás seguro de que deseas eliminar esta transacción? Esto afectará tu balance disponible y el progreso de tus metas de ahorro.');
+            if (!confirmDelete) return;
+
+            try {
+                const response = await fetch(`/api/transactions/${txId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    await loadDashboardData();
+                } else {
+                    alert('No se pudo borrar la fila.');
+                }
+            } catch (err) {
+                alert('Error al conectar con la API.');
+            }
+        }
+
+        // 16. Funciones para Modal de Edición de Transacciones
+        function openEditModal(txId) {
+            const tx = transactionsData.find(t => t.id === txId);
+            if (!tx) return;
+
+            document.getElementById('edit-tx-id').value = tx.id;
+            document.getElementById('edit-tx-type').value = tx.type;
+            document.getElementById('edit-tx-amount').value = tx.amount;
+            document.getElementById('edit-tx-description').value = tx.description;
+            
+            // Forzar fecha al formato YYYY-MM-DD
+            const dateObj = new Date(tx.transaction_date);
+            const formattedDate = dateObj.toISOString().split('T')[0];
+            document.getElementById('edit-tx-date').value = formattedDate;
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        async function handleUpdateTransaction(event) {
+            event.preventDefault();
+            const id = document.getElementById('edit-tx-id').value;
+            const type = document.getElementById('edit-tx-type').value;
+            const amount = parseFloat(document.getElementById('edit-tx-amount').value);
+            const description = document.getElementById('edit-tx-description').value;
+            const transaction_date = document.getElementById('edit-tx-date').value;
+
+            try {
+                const response = await fetch(`/api/transactions/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, amount, description, transaction_date })
+                });
+
+                if (response.ok) {
+                    closeEditModal();
+                    await loadDashboardData();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al actualizar la transacción');
+                }
+            } catch (err) {
+                alert('Error al conectar con el servidor');
+            }
+        }
+
+        // Helpers de Formato y Sanitización
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // Ejecutar verificación de autenticación al cargar la página
+        checkAuthentication();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1261 @@
+REGISTRO DE MODIFICACIONES DE SEGURIDAD - PROYECTO MIPLAZO
+=========================================================
+
+Este documento describe detalladamente los cambios y el endurecimiento (hardening) de seguridad realizados en la base de código del proyecto 'MiPlazo', siguiendo directrices de seguridad OWASP y mejores prácticas para el desarrollo de backend en Go.
+
+---------------------------------------------------------
+RESUMEN DE MODIFICACIONES
+---------------------------------------------------------
+1. JWT_SECRET MANDATORIO:
+   - Se removió la clave secreta por defecto ("MiPlazoSuperSecretKey2026") de todo el código fuente.
+   - Si la variable de entorno JWT_SECRET no está configurada, la aplicación abortará su inicio inmediatamente.
+   - Archivos modificados: 
+     * cmd/api/main.go (Verificación en arranque)
+     * internal/users/users.go (Verificación en constructor)
+     * internal/security/auth.go (Verificación en middleware)
+     * internal/router/router.go (Manejo de errores del constructor de usuarios)
+
+2. MITIGACIÓN DE XSS ALMACENADO (Stored XSS):
+   - Se integró la librería 'github.com/microcosm-cc/bluemonday'.
+   - Se aplica una sanitización estricta (bluemonday.StrictPolicy().Sanitize) al campo 'description' de las transacciones antes de almacenarlas en la base de datos PostgreSQL.
+   - Archivos modificados:
+     * internal/transactions/transactions.go
+
+---------------------------------------------------------
+CÓDIGO COMPLETO DE CADA ARCHIVO MODIFICADO
+---------------------------------------------------------
+
+1. ARCHIVO: cmd/api/main.go
+Ubicación: Raíz del módulo ejecutable
+Cambios: Verificación en arranque de la existencia de JWT_SECRET mediante log.Fatal.
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+	"os"
+
+	"miplazo/internal/config"
+	"miplazo/internal/router"
+)
+
+func main() {
+	log.Println("Iniciando la aplicación MiPlazo...")
+
+	// Verificar que la variable de entorno JWT_SECRET esté configurada
+	if os.Getenv("JWT_SECRET") == "" {
+		log.Fatal("Error crítico de seguridad: la variable de entorno JWT_SECRET es obligatoria y no está configurada")
+	}
+
+	// Inicializar la conexión a la base de datos
+	db, err := config.ConnectDB()
+	if err != nil {
+		log.Fatalf("Error crítico al inicializar la base de datos: %v", err)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Advertencia: error al cerrar la conexión de la base de datos: %v", err)
+		} else {
+			log.Println("Conexión a la base de datos cerrada limpiamente.")
+		}
+	}()
+
+	log.Println("Conexión a la base de datos PostgreSQL establecida correctamente y verificada.")
+
+	// Inicializar el router de la aplicación
+	r := router.NewRouter(db)
+
+	// Configurar e iniciar el servidor HTTP
+	port := ":8080"
+	log.Printf("Servidor escuchando de forma segura en http://localhost%s", port)
+	if err := http.ListenAndServe(port, r); err != nil {
+		log.Fatalf("Error crítico: el servidor HTTP no pudo iniciar: %v", err)
+	}
+}
+```
+
+---
+
+2. ARCHIVO: internal/users/users.go
+Ubicación: Lógica del módulo de usuarios
+Cambios: Firma de NewHandler modificada para retornar (*Handler, error) y obligar a que JWT_SECRET exista.
+
+```go
+package users
+
+import (
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"os"
+	"regexp"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
+)
+
+var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+
+// User representa el modelo de usuario en la base de datos.
+type User struct {
+	ID           int       `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"-"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// Credentials define los campos requeridos para registro y login.
+type Credentials struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// TokenResponse representa el cuerpo de respuesta para un login exitoso.
+type TokenResponse struct {
+	Token     string `json:"token"`
+	ExpiresIn string `json:"expires_in"`
+}
+
+// Handler contiene las dependencias para las rutas de usuarios.
+type Handler struct {
+	db        *sql.DB
+	jwtSecret []byte
+}
+
+// NewHandler inicializa y retorna una instancia de Handler.
+func NewHandler(db *sql.DB) (*Handler, error) {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return nil, errors.New("la variable de entorno JWT_SECRET es obligatoria y no está configurada")
+	}
+	return &Handler{
+		db:        db,
+		jwtSecret: []byte(secret),
+	}, nil
+}
+
+// Register maneja la creación de un nuevo usuario en la plataforma.
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+	// Prevención de DoS: limitar tamaño del cuerpo de la petición a 1MB
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	var creds Credentials
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Formato JSON inválido")
+		return
+	}
+
+	// Validaciones básicas de seguridad
+	if !emailRegex.MatchString(creds.Email) {
+		h.respondWithError(w, http.StatusBadRequest, "Formato de correo electrónico inválido")
+		return
+	}
+	if len(creds.Password) < 8 {
+		h.respondWithError(w, http.StatusBadRequest, "La contraseña debe tener al menos 8 caracteres")
+		return
+	}
+
+	// Encriptar la contraseña usando bcrypt
+	hash, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
+	if err != nil {
+		h.respondWithError(w, http.StatusInternalServerError, "Error interno de seguridad")
+		return
+	}
+
+	// Insertar el usuario en la base de datos usando consultas parametrizadas (Evita SQL Injection)
+	query := `INSERT INTO users (email, password_hash, created_at) VALUES ($1, $2, $3) RETURNING id, created_at`
+	var user User
+	err = h.db.QueryRowContext(r.Context(), query, creds.Email, string(hash), time.Now()).Scan(&user.ID, &user.CreatedAt)
+	if err != nil {
+		// Control de clave duplicada (Postgres error code 23505)
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			h.respondWithError(w, http.StatusConflict, "El correo electrónico ya se encuentra registrado")
+			return
+		}
+		h.respondWithError(w, http.StatusInternalServerError, "No se pudo completar el registro")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message": "Usuario registrado exitosamente. Por favor, inicie sesión.",
+	})
+}
+
+// Login valida las credenciales y genera un token JWT de sesión.
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	// Prevención de DoS: limitar tamaño del cuerpo de la petición a 1MB
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	var creds Credentials
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Formato JSON inválido")
+		return
+	}
+
+	// Consulta parametrizada para obtener los datos del usuario
+	query := `SELECT id, email, password_hash, created_at FROM users WHERE email = $1`
+	var user User
+	err := h.db.QueryRowContext(r.Context(), query, creds.Email).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.CreatedAt)
+	if err != nil {
+		// Mensaje genérico para prevenir enumeración de usuarios (OWASP compliance)
+		h.respondWithError(w, http.StatusUnauthorized, "Credenciales incorrectas")
+		return
+	}
+
+	// Verificar la contraseña con el hash guardado
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(creds.Password))
+	if err != nil {
+		h.respondWithError(w, http.StatusUnauthorized, "Credenciales incorrectas")
+		return
+	}
+
+	// Generar el token JWT con expiración de 24 horas y el user_id en claims
+	expirationTime := time.Now().Add(24 * time.Hour)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"exp":     expirationTime.Unix(),
+		"iat":     time.Now().Unix(),
+	})
+
+	tokenString, err := token.SignedString(h.jwtSecret)
+	if err != nil {
+		h.respondWithError(w, http.StatusInternalServerError, "No se pudo generar el token de sesión")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(TokenResponse{
+		Token:     tokenString,
+		ExpiresIn: "24h",
+	})
+}
+
+// respondWithError responde de forma consistente con código de estado HTTP y JSON de error.
+func (h *Handler) respondWithError(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+```
+
+---
+
+3. ARCHIVO: internal/security/auth.go
+Ubicación: Middleware de seguridad
+Cambios: Detener ejecución mediante panic si JWT_SECRET no se encuentra en las variables de entorno.
+
+```go
+package security
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/golang-jwt/jwt/v5"
+)
+
+type contextKey struct{}
+
+var userIDKey = contextKey{}
+
+// AuthMiddleware es el middleware de autenticación que valida el token JWT en la cabecera Authorization.
+func AuthMiddleware(next http.Handler) http.Handler {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		panic("error crítico de seguridad: la variable de entorno JWT_SECRET es obligatoria y no está configurada")
+	}
+	jwtSecret := []byte(secret)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+			return
+		}
+
+		// Validar formato estándar: Bearer <token>
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+			respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+			return
+		}
+
+		tokenString := parts[1]
+
+		// Validar firma y expiración del token JWT
+		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+			// Validar el método de firma
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return jwtSecret, nil
+		})
+
+		if err != nil || !token.Valid {
+			respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+			return
+		}
+
+		// Extraer claims
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+			return
+		}
+
+		// En JWT, los números decodificados se representan como float64
+		userIDFloat, ok := claims["user_id"].(float64)
+		if !ok {
+			respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+			return
+		}
+
+		userID := int(userIDFloat)
+
+		// Guardar user_id de forma segura en el contexto de la petición
+		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// GetUserID de-serializa el user_id del contexto si existe.
+func GetUserID(ctx context.Context) (int, bool) {
+	userID, ok := ctx.Value(userIDKey).(int)
+	return userID, ok
+}
+
+// respondWithError responde de forma consistente con formato JSON de error.
+func respondWithError(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+```
+
+---
+
+4. ARCHIVO: internal/router/router.go
+Ubicación: Configuración de rutas y middlewares base
+Cambios: Capturar el error del constructor de usuarios `users.NewHandler(db)` e iniciar pánico en caso de falla.
+
+```go
+package router
+
+import (
+	"database/sql"
+	"net/http"
+	"time"
+
+	"miplazo/internal/goals"
+	"miplazo/internal/security"
+	"miplazo/internal/transactions" // <-- 1. Importamos el módulo de transacciones
+	"miplazo/internal/users"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+)
+
+func NewRouter(db *sql.DB) http.Handler {
+	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(securityHeaders)
+
+	// Inicializar Manejadores (Handlers)
+	userHandler, err := users.NewHandler(db)
+	if err != nil {
+		panic("error crítico al inicializar el handler de usuarios: " + err.Error())
+	}
+	goalHandler := goals.NewHandler(db)
+	txHandler := transactions.NewHandler(db) // <-- 2. Inicializamos el manejador de transacciones
+
+	// Rutas Públicas de Autenticación
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/register", userHandler.Register)
+		r.Post("/login", userHandler.Login)
+	})
+
+	// Rutas Protegidas de la API (Requieren JWT)
+	r.Route("/api", func(r chi.Router) {
+		r.Use(security.AuthMiddleware)
+
+		// Subgrupo para Metas de Ahorro
+		r.Route("/goals", func(r chi.Router) {
+			r.Post("/", goalHandler.CreateGoal)
+			r.Get("/", goalHandler.GetGoals)
+			r.Put("/{id}", goalHandler.UpdateProgress)
+			r.Delete("/{id}", goalHandler.DeleteGoal)
+		})
+
+		// 🔥 Subgrupo para Transacciones Estilo Excel (/api/transactions)
+		r.Route("/transactions", func(r chi.Router) {
+			r.Post("/", txHandler.CreateTransaction)       // POST /api/transactions (Registrar ingreso/gasto)
+			r.Get("/", txHandler.GetTransactions)         // GET /api/transactions (Ver historial contable)
+			r.Put("/{id}", txHandler.UpdateTransaction)   // PUT /api/transactions/1 (Modificar fila)
+			r.Delete("/{id}", txHandler.DeleteTransaction) // DELETE /api/transactions/1 (Borrar fila)
+		})
+	})
+
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status": "ok", "message": "MiPlazo API robusta y ligera"}`))
+	})
+
+	return r
+}
+
+// securityHeaders middleware inyecta cabeceras HTTP de seguridad recomendadas por OWASP
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		next.ServeHTTP(w, r)
+	})
+}
+```
+
+---
+
+5. ARCHIVO: internal/transactions/transactions.go
+Ubicación: Gestión de transacciones (ingresos/gastos)
+Cambios: Sanitización estricta (bluemonday) de req.Description en los métodos CreateTransaction y UpdateTransaction.
+
+```go
+package transactions
+
+import (
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"time"
+
+	"miplazo/internal/security"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/microcosm-cc/bluemonday"
+)
+
+// Transaction representa el modelo de una transacción en la base de datos.
+type Transaction struct {
+	ID              int       `json:"id"`
+	UserID          int       `json:"user_id"`
+	Type            string    `json:"type"` // 'INCOME' o 'EXPENSE'
+	Amount          float64   `json:"amount"`
+	Description     string    `json:"description"`
+	TransactionDate time.Time `json:"transaction_date"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+// TransactionRequest define los campos permitidos para la creación/actualización de transacciones.
+type TransactionRequest struct {
+	Type            string  `json:"type"`
+	Amount          float64 `json:"amount"`
+	Description     string  `json:"description"`
+	TransactionDate string  `json:"transaction_date"` // Formato esperado: "AAAA-MM-DD"
+}
+
+// Handler contiene las dependencias del módulo de transacciones.
+type Handler struct {
+	db *sql.DB
+}
+
+// NewHandler inicializa el manejador de transacciones.
+func NewHandler(db *sql.DB) *Handler {
+	return &Handler{db: db}
+}
+
+// CreateTransaction registra una nueva transacción (ingreso o gasto) para el usuario.
+func (h *Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+	userID, ok := security.GetUserID(r.Context())
+	if !ok {
+		h.respondWithError(w, http.StatusUnauthorized, "Usuario no autenticado")
+		return
+	}
+
+	// Mitigación DoS: Limitar el cuerpo a 1MB
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	var req TransactionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Cuerpo JSON inválido")
+		return
+	}
+
+	// Validaciones de negocio y seguridad
+	if req.Type != "INCOME" && req.Type != "EXPENSE" {
+		h.respondWithError(w, http.StatusBadRequest, "El tipo debe ser estrictamente 'INCOME' o 'EXPENSE'")
+		return
+	}
+	if req.Amount <= 0 {
+		h.respondWithError(w, http.StatusBadRequest, "El monto debe ser mayor a 0")
+		return
+	}
+
+	txDate, err := time.Parse("2006-01-02", req.TransactionDate)
+	if err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Formato de fecha de transacción inválido, use AAAA-MM-DD")
+		return
+	}
+
+	// Sanitización estricta de la descripción para evitar XSS Almacenado (OWASP compliance)
+	sanitizedDescription := bluemonday.StrictPolicy().Sanitize(req.Description)
+
+	// Consulta parametrizada (prevención de SQL Injection)
+	query := `
+		INSERT INTO transactions (user_id, type, amount, description, transaction_date, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, created_at
+	`
+	var t Transaction
+	err = h.db.QueryRowContext(
+		r.Context(), query, userID, req.Type, req.Amount, sanitizedDescription, txDate, time.Now(),
+	).Scan(&t.ID, &t.CreatedAt)
+
+	if err != nil {
+		h.respondWithError(w, http.StatusInternalServerError, "No se pudo registrar la transacción")
+		return
+	}
+
+	t.UserID = userID
+	t.Type = req.Type
+	t.Amount = req.Amount
+	t.Description = sanitizedDescription
+	t.TransactionDate = txDate
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(t)
+}
+
+// GetTransactions obtiene todas las transacciones del usuario ordenadas de forma descendente.
+func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
+	userID, ok := security.GetUserID(r.Context())
+	if !ok {
+		h.respondWithError(w, http.StatusUnauthorized, "Usuario no autenticado")
+		return
+	}
+
+	// Consulta parametrizada con orden descendente por fecha (estilo historial contable)
+	query := `
+		SELECT id, type, amount, description, transaction_date, created_at
+		FROM transactions
+		WHERE user_id = $1
+		ORDER BY transaction_date DESC, created_at DESC
+	`
+	rows, err := h.db.QueryContext(r.Context(), query, userID)
+	if err != nil {
+		h.respondWithError(w, http.StatusInternalServerError, "Error al consultar las transacciones")
+		return
+	}
+	defer rows.Close() // Evita fugas de memoria y descriptores de conexión en baja RAM
+
+	txs := []Transaction{}
+	for rows.Next() {
+		var t Transaction
+		err := rows.Scan(&t.ID, &t.Type, &t.Amount, &t.Description, &t.TransactionDate, &t.CreatedAt)
+		if err != nil {
+			h.respondWithError(w, http.StatusInternalServerError, "Error al procesar las transacciones")
+			return
+		}
+		t.UserID = userID
+		txs = append(txs, t)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(txs)
+}
+
+// UpdateTransaction actualiza los campos de una transacción existente mitigando IDOR.
+func (h *Handler) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
+	userID, ok := security.GetUserID(r.Context())
+	if !ok {
+		h.respondWithError(w, http.StatusUnauthorized, "Usuario no autenticado")
+		return
+	}
+
+	txIDStr := chi.URLParam(r, "id")
+	txID, err := strconv.Atoi(txIDStr)
+	if err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "ID de transacción inválido")
+		return
+	}
+
+	// Mitigación DoS
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	var req TransactionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Cuerpo JSON inválido")
+		return
+	}
+
+	if req.Type != "INCOME" && req.Type != "EXPENSE" {
+		h.respondWithError(w, http.StatusBadRequest, "El tipo debe ser estrictamente 'INCOME' o 'EXPENSE'")
+		return
+	}
+	if req.Amount <= 0 {
+		h.respondWithError(w, http.StatusBadRequest, "El monto debe ser mayor a 0")
+		return
+	}
+
+	txDate, err := time.Parse("2006-01-02", req.TransactionDate)
+	if err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Formato de fecha de transacción inválido, use AAAA-MM-DD")
+		return
+	}
+
+	// Sanitización estricta de la descripción para evitar XSS Almacenado (OWASP compliance)
+	sanitizedDescription := bluemonday.StrictPolicy().Sanitize(req.Description)
+
+	// Consulta parametrizada con control de IDOR (WHERE id = $1 AND user_id = $2)
+	query := `
+		UPDATE transactions
+		SET type = $1, amount = $2, description = $3, transaction_date = $4
+		WHERE id = $5 AND user_id = $6
+	`
+	result, err := h.db.ExecContext(r.Context(), query, req.Type, req.Amount, sanitizedDescription, txDate, txID, userID)
+	if err != nil {
+		h.respondWithError(w, http.StatusInternalServerError, "No se pudo actualizar la transacción")
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected == 0 {
+		h.respondWithError(w, http.StatusNotFound, "Transacción no encontrada o no pertenece al usuario")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Transacción actualizada correctamente",
+		"id":      txID,
+	})
+}
+
+// DeleteTransaction elimina una transacción mitigando IDOR.
+func (h *Handler) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
+	userID, ok := security.GetUserID(r.Context())
+	if !ok {
+		h.respondWithError(w, http.StatusUnauthorized, "Usuario no autenticado")
+		return
+	}
+
+	txIDStr := chi.URLParam(r, "id")
+	txID, err := strconv.Atoi(txIDStr)
+	if err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "ID de transacción inválido")
+		return
+	}
+
+	// Consulta parametrizada con control de IDOR (WHERE id = $1 AND user_id = $2)
+	query := `DELETE FROM transactions WHERE id = $1 AND user_id = $2`
+	result, err := h.db.ExecContext(r.Context(), query, txID, userID)
+	if err != nil {
+		h.respondWithError(w, http.StatusInternalServerError, "No se pudo eliminar la transacción")
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected == 0 {
+		h.respondWithError(w, http.StatusNotFound, "Transacción no encontrada o no pertenece al usuario")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "Transacción eliminada con éxito"})
+}
+
+// respondWithError responde de forma consistente con formato JSON de error.
+func (h *Handler) respondWithError(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+```
+
+=========================================================
+NUEVAS MEJORAS DE HARDENING DE SEGURIDAD
+=========================================================
+
+1. ELIMINACIÓN DE VALIDACIÓN REDUNDANTE EN MIDDLEWARE:
+   - Se removió el bloque condicional panic en `AuthMiddleware` en `internal/security/auth.go`.
+   - Dado que `main.go` ya aborta con `log.Fatal` si `JWT_SECRET` está vacío, el middleware asume su existencia de forma segura y carga `jwtSecret` una única vez por inicialización para optimizar la memoria y rendimiento.
+
+2. AUTENTICACIÓN BASADA EN COOKIES SEGURAS (Mitigación CSRF y XSS):
+   - En `internal/users/users.go` (Login): En lugar de devolver el JWT en el cuerpo JSON, ahora se inyecta en una cookie HTTP nativa.
+   - Propiedades de la cookie:
+     * Nombre: "miplazo_session"
+     * HttpOnly: true (Previene robo por scripts maliciosos / XSS)
+     * Secure: os.Getenv("ENV") == "production" (Evaluación dinámica: obliga HTTPS en producción, permite HTTP en desarrollo)
+     * SameSite: http.SameSiteStrictMode (Defensa completa contra CSRF)
+     * Path: "/"
+     * MaxAge: 86400 (Coincide con la duración del token de 24 horas)
+   - Respuesta de Login: JSON plano `{"message": "Sesión iniciada correctamente"}`.
+
+3. EXTRACCIÓN DE TOKEN DESDE LA COOKIE DE SESIÓN:
+   - En `internal/security/auth.go`: Se modificó el middleware para extraer el token desde `r.Cookie("miplazo_session")` en lugar de la cabecera `Authorization`.
+
+---------------------------------------------------------
+CÓDIGO COMPLETO DE LOS ARCHIVOS ACTUALIZADOS CON COOKIES
+---------------------------------------------------------
+
+1. ARCHIVO: internal/security/auth.go
+Ubicación: Middleware de seguridad
+Cambios: Extracción desde Cookie, remoción de pánico redundante, optimización de lectura de secreto.
+
+```go
+package security
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"os"
+
+	"github.com/golang-jwt/jwt/v5"
+)
+
+type contextKey struct{}
+
+var userIDKey = contextKey{}
+
+// AuthMiddleware es el middleware de autenticación que valida el token JWT en la cookie de sesión.
+func AuthMiddleware(next http.Handler) http.Handler {
+	// Carga jwtSecret una sola vez para optimizar memoria (validada previamente en arranque)
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extraer el token de la cookie miplazo_session
+		cookie, err := r.Cookie("miplazo_session")
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+			return
+		}
+
+		tokenString := cookie.Value
+
+		// Validar firma y expiración del token JWT
+		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+			// Validar el método de firma
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return jwtSecret, nil
+		})
+
+		if err != nil || !token.Valid {
+			respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+			return
+		}
+
+		// Extraer claims
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+			return
+		}
+
+		// En JWT, los números decodificados se representan como float64
+		userIDFloat, ok := claims["user_id"].(float64)
+		if !ok {
+			respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+			return
+		}
+
+		userID := int(userIDFloat)
+
+		// Guardar user_id de forma segura en el contexto de la petición
+		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// GetUserID de-serializa el user_id del contexto si existe.
+func GetUserID(ctx context.Context) (int, bool) {
+	userID, ok := ctx.Value(userIDKey).(int)
+	return userID, ok
+}
+
+// respondWithError responde de forma consistente con formato JSON de error.
+func respondWithError(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+```
+
+---
+
+2. ARCHIVO: internal/users/users.go
+Ubicación: Módulo de Usuarios
+Cambios: Login modificado para inyectar Cookie HttpOnly SameSite=Strict Secure MaxAge=24h, y responder con éxito JSON.
+
+```go
+package users
+
+import (
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"os"
+	"regexp"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
+)
+
+var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+
+// User representa el modelo de usuario en la base de datos.
+type User struct {
+	ID           int       `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"-"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// Credentials define los campos requeridos para registro y login.
+type Credentials struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// TokenResponse representa el cuerpo de respuesta para un login exitoso.
+type TokenResponse struct {
+	Token     string `json:"token"`
+	ExpiresIn string `json:"expires_in"`
+}
+
+// Handler contiene las dependencias para las rutas de usuarios.
+type Handler struct {
+	db        *sql.DB
+	jwtSecret []byte
+}
+
+// NewHandler inicializa y retorna una instancia de Handler.
+func NewHandler(db *sql.DB) (*Handler, error) {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return nil, errors.New("la variable de entorno JWT_SECRET es obligatoria y no está configurada")
+	}
+	return &Handler{
+		db:        db,
+		jwtSecret: []byte(secret),
+	}, nil
+}
+
+// Register maneja la creación de un nuevo usuario en la plataforma.
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+	// Prevención de DoS: limitar tamaño del cuerpo de la petición a 1MB
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	var creds Credentials
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Formato JSON inválido")
+		return
+	}
+
+	// Validaciones básicas de seguridad
+	if !emailRegex.MatchString(creds.Email) {
+		h.respondWithError(w, http.StatusBadRequest, "Formato de correo electrónico inválido")
+		return
+	}
+	if len(creds.Password) < 8 {
+		h.respondWithError(w, http.StatusBadRequest, "La contraseña debe tener al menos 8 caracteres")
+		return
+	}
+
+	// Encriptar la contraseña usando bcrypt
+	hash, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
+	if err != nil {
+		h.respondWithError(w, http.StatusInternalServerError, "Error interno de seguridad")
+		return
+	}
+
+	// Insertar el usuario en la base de datos usando consultas parametrizadas (Evita SQL Injection)
+	query := `INSERT INTO users (email, password_hash, created_at) VALUES ($1, $2, $3) RETURNING id, created_at`
+	var user User
+	err = h.db.QueryRowContext(r.Context(), query, creds.Email, string(hash), time.Now()).Scan(&user.ID, &user.CreatedAt)
+	if err != nil {
+		// Control de clave duplicada (Postgres error code 23505)
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			h.respondWithError(w, http.StatusConflict, "El correo electrónico ya se encuentra registrado")
+			return
+		}
+		h.respondWithError(w, http.StatusInternalServerError, "No se pudo completar el registro")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message": "Usuario registrado exitosamente. Por favor, inicie sesión.",
+	})
+}
+
+// Login valida las credenciales y genera un token JWT de sesión.
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	// Prevención de DoS: limitar tamaño del cuerpo de la petición a 1MB
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	var creds Credentials
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		h.respondWithError(w, http.StatusBadRequest, "Formato JSON inválido")
+		return
+	}
+
+	// Consulta parametrizada para obtener los datos del usuario
+	query := `SELECT id, email, password_hash, created_at FROM users WHERE email = $1`
+	var user User
+	err := h.db.QueryRowContext(r.Context(), query, creds.Email).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.CreatedAt)
+	if err != nil {
+		// Mensaje genérico para prevenir enumeración de usuarios (OWASP compliance)
+		h.respondWithError(w, http.StatusUnauthorized, "Credenciales incorrectas")
+		return
+	}
+
+	// Verificar la contraseña con el hash guardado
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(creds.Password))
+	if err != nil {
+		h.respondWithError(w, http.StatusUnauthorized, "Credenciales incorrectas")
+		return
+	}
+
+	// Generar el token JWT con expiración de 24 horas y el user_id en claims
+	expirationTime := time.Now().Add(24 * time.Hour)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"exp":     expirationTime.Unix(),
+		"iat":     time.Now().Unix(),
+	})
+
+	tokenString, err := token.SignedString(h.jwtSecret)
+	if err != nil {
+		h.respondWithError(w, http.StatusInternalServerError, "No se pudo generar el token de sesión")
+		return
+	}
+
+	// Configurar cookie de sesión segura bajo directrices OWASP
+	http.SetCookie(w, &http.Cookie{
+		Name:     "miplazo_session",
+		Value:    tokenString,
+		Path:     "/",
+		MaxAge:   86400, // 24 horas en segundos
+		HttpOnly: true,
+		Secure:   os.Getenv("ENV") == "production",
+		SameSite: http.SameSiteStrictMode, // Mitigación total de ataques CSRF
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message": "Sesión iniciada correctamente",
+	})
+}
+
+// respondWithError responde de forma consistente con código de estado HTTP y JSON de error.
+func (h *Handler) respondWithError(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+```
+
+=========================================================
+MEJORAS DE SEGURIDAD Y RENDIMIENTO (ENV & MEMORY OPT)
+=========================================================
+
+1. INICIALIZACIÓN FLEXIBLE DE JWT_SECRET SEGÚN EL ENTORNO (ENV):
+   - En `cmd/api/main.go`: Se modificó el arranque del servidor.
+   - Si la variable `ENV` es `"production"`, la falta de `JWT_SECRET` resulta en un `log.Fatal` inmediato para asegurar la producción.
+   - Si no estamos en producción y `JWT_SECRET` está vacío, se le asigna el secreto de desarrollo `"MiPlazoLocalDevSecret2026"` y se muestra una advertencia amistosa en consola.
+
+2. OPTIMIZACIÓN DE MEMORIA EN MIDDLEWARE DE AUTENTICACIÓN (AuthMiddleware):
+   - En `internal/security/auth.go`: Se modificó la firma a `AuthMiddleware(jwtSecret []byte) func(http.Handler) http.Handler`.
+   - Se removió la lectura de `os.Getenv` en cada petición HTTP. Ahora el secreto es provisto durante la inicialización, reduciendo el consumo de memoria en entornos con RAM limitada.
+
+3. INYECCIÓN DEL SECRETO DESDE EL ROUTER:
+   - En `internal/router/router.go`: Se lee `os.Getenv("JWT_SECRET")` exactamente una vez al iniciar el router y se pasa directamente al inicializar `security.AuthMiddleware(jwtSecret)`.
+
+---------------------------------------------------------
+CÓDIGO COMPLETO DE LOS ARCHIVOS ACTUALIZADOS
+---------------------------------------------------------
+
+1. ARCHIVO: cmd/api/main.go
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+	"os"
+
+	"miplazo/internal/config"
+	"miplazo/internal/router"
+)
+
+func main() {
+	log.Println("Iniciando la aplicación MiPlazo...")
+
+	// Evaluar el entorno de ejecución
+	env := os.Getenv("ENV")
+	jwtSecretEnv := os.Getenv("JWT_SECRET")
+
+	if jwtSecretEnv == "" {
+		if env == "production" {
+			log.Fatal("Error crítico de seguridad: la variable de entorno JWT_SECRET es obligatoria en producción y no está configurada")
+		} else {
+			log.Println("⚠️ Advertencia: Usando clave secreta de desarrollo local")
+			os.Setenv("JWT_SECRET", "MiPlazoLocalDevSecret2026")
+		}
+	}
+
+	// Inicializar la conexión a la base de datos
+	db, err := config.ConnectDB()
+	if err != nil {
+		log.Fatalf("Error crítico al inicializar la base de datos: %v", err)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Advertencia: error al cerrar la conexión de la base de datos: %v", err)
+		} else {
+			log.Println("Conexión a la base de datos cerrada limpiamente.")
+		}
+	}()
+
+	log.Println("Conexión a la base de datos PostgreSQL establecida correctamente y verificada.")
+
+	// Inicializar el router de la aplicación
+	r := router.NewRouter(db)
+
+	// Configurar e iniciar el servidor HTTP
+	port := ":8080"
+	log.Printf("Servidor escuchando de forma segura en http://localhost%s", port)
+	if err := http.ListenAndServe(port, r); err != nil {
+		log.Fatalf("Error crítico: el servidor HTTP no pudo iniciar: %v", err)
+	}
+}
+```
+
+---
+
+2. ARCHIVO: internal/security/auth.go
+```go
+package security
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+
+	"github.com/golang-jwt/jwt/v5"
+)
+
+type contextKey struct{}
+
+var userIDKey = contextKey{}
+
+// AuthMiddleware es el middleware de autenticación que valida el token JWT en la cookie de sesión.
+func AuthMiddleware(jwtSecret []byte) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Extraer el token de la cookie miplazo_session
+			cookie, err := r.Cookie("miplazo_session")
+			if err != nil {
+				respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+				return
+			}
+
+			tokenString := cookie.Value
+
+			// Validar firma y expiración del token JWT
+			token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+				// Validar el método de firma
+				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, jwt.ErrSignatureInvalid
+				}
+				return jwtSecret, nil
+			})
+
+			if err != nil || !token.Valid {
+				respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+				return
+			}
+
+			// Extraer claims
+			claims, ok := token.Claims.(jwt.MapClaims)
+			if !ok {
+				respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+				return
+			}
+
+			// En JWT, los números decodificados se representan como float64
+			userIDFloat, ok := claims["user_id"].(float64)
+			if !ok {
+				respondWithError(w, http.StatusUnauthorized, "Token de sesión inválido o expirado")
+				return
+			}
+
+			userID := int(userIDFloat)
+
+			// Guardar user_id de forma segura en el contexto de la petición
+			ctx := context.WithValue(r.Context(), userIDKey, userID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// GetUserID de-serializa el user_id del contexto si existe.
+func GetUserID(ctx context.Context) (int, bool) {
+	userID, ok := ctx.Value(userIDKey).(int)
+	return userID, ok
+}
+
+// respondWithError responde de forma consistente con formato JSON de error.
+func respondWithError(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+```
+
+---
+
+3. ARCHIVO: internal/router/router.go
+```go
+package router
+
+import (
+	"database/sql"
+	"net/http"
+	"os"
+	"time"
+
+	"miplazo/internal/goals"
+	"miplazo/internal/security"
+	"miplazo/internal/transactions" // <-- 1. Importamos el módulo de transacciones
+	"miplazo/internal/users"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+)
+
+func NewRouter(db *sql.DB) http.Handler {
+	r := chi.NewRouter()
+
+	// Cargar jwtSecret una sola vez para optimizar memoria en entornos de baja RAM
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(securityHeaders)
+
+	// Inicializar Manejadores (Handlers)
+	userHandler, err := users.NewHandler(db)
+	if err != nil {
+		panic("error crítico al inicializar el handler de usuarios: " + err.Error())
+	}
+	goalHandler := goals.NewHandler(db)
+	txHandler := transactions.NewHandler(db) // <-- 2. Inicializamos el manejador de transacciones
+
+	// Rutas Públicas de Autenticación
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/register", userHandler.Register)
+		r.Post("/login", userHandler.Login)
+	})
+
+	// Rutas Protegidas de la API (Requieren JWT)
+	r.Route("/api", func(r chi.Router) {
+		r.Use(security.AuthMiddleware(jwtSecret))
+
+		// Subgrupo para Metas de Ahorro
+		r.Route("/goals", func(r chi.Router) {
+			r.Post("/", goalHandler.CreateGoal)
+			r.Get("/", goalHandler.GetGoals)
+			r.Put("/{id}", goalHandler.UpdateProgress)
+			r.Delete("/{id}", goalHandler.DeleteGoal)
+		})
+
+		// 🔥 Subgrupo para Transacciones Estilo Excel (/api/transactions)
+		r.Route("/transactions", func(r chi.Router) {
+			r.Post("/", txHandler.CreateTransaction)       // POST /api/transactions (Registrar ingreso/gasto)
+			r.Get("/", txHandler.GetTransactions)         // GET /api/transactions (Ver historial contable)
+			r.Put("/{id}", txHandler.UpdateTransaction)   // PUT /api/transactions/1 (Modificar fila)
+			r.Delete("/{id}", txHandler.DeleteTransaction) // DELETE /api/transactions/1 (Borrar fila)
+		})
+	})
+
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status": "ok", "message": "MiPlazo API robusta y ligera"}`))
+	})
+
+	return r
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+
+		// 🔥 Nueva CSP robusta y flexibilizada para CDNs de UI y peticiones
+		w.Header().Set("Content-Security-Policy", 
+			"default-src 'self'; "+
+			"script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; "+
+			"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "+
+			"font-src 'self' https://fonts.gstatic.com https://unpkg.com; "+
+			"connect-src 'self' https://unpkg.com;")
+
+		next.ServeHTTP(w, r)
+	})
+}
+```
+
+=========================================================
+MEJORAS DE NEGOCIO Y CONSISTENCIA FINANCIERA (MAYO 2026)
+=========================================================
+
+1. CUMPLIMIENTO DE CSP PARA RECURSOS EXTERNOS (Iconos Lucide):
+   - En `internal/router/router.go`: Se agregó la directiva `connect-src 'self' https://unpkg.com;` en la cabecera `Content-Security-Policy` para evitar que el navegador bloquee las solicitudes AJAX/MIME del mapa de iconos de Lucide.
+
+2. LOGOUT SEGURO EN EL BACKEND (Cierre de Sesión):
+   - En `internal/router/router.go`: Se registró la ruta pública `r.Post("/auth/logout", userHandler.Logout)`.
+   - En `internal/users/users.go`: Se implementó el handler `Logout` que destruye la cookie `miplazo_session` enviando un `MaxAge: -1` y forzando su expiración inmediata en el cliente.
+
+3. REGLAS DE CONSISTENCIA Y CONTROL DE SALDO (UpdateProgress en Metas):
+   - En `internal/goals/goals.go`: Se modificó el método `UpdateProgress` para que realice dos validaciones SQL adicionales usando sumas agregadas y coalescencia:
+     * Calcula el balance financiero neto del usuario consultando `transactions` (ingresos - gastos).
+     * Calcula la suma de dinero ya retenida/comprometida en otras metas de ahorro.
+     * Si la nueva asignación de fondos (`req.CurrentAmount + otherGoalsAllocated`) supera el saldo neto disponible del usuario, la petición es denegada con un código `400 Bad Request` y el mensaje de error: `{"error": "Saldo insuficiente en tu balance general para cubrir este monto de ahorro"}`.
+```
+
