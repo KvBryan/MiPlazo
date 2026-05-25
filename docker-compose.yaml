@@ -1,18 +1,59 @@
 version: '3.8'
 
 services:
-  postgres_db:
-    image: postgres:16-alpine
-    container_name: miplazo_db
+  # Servidor de Base de Datos PostgreSQL Protegido y Optimizado para baja RAM
+  db_prod:
+    image: postgres:15-alpine
+    container_name: miplazo_db_prod
+    restart: always
     environment:
-      POSTGRES_USER: miplazo_user
-      POSTGRES_PASSWORD: MiPlazoSecurePassword2026
-      POSTGRES_DB: miplazo_backend
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${DB_USER:-miplazo_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-CambiaEstaClaveEnElDroplet2026}
+      POSTGRES_DB: ${DB_NAME:-miplazo_finance}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=20"] # Optimización estricta de RAM
+      - postgres_prod_data:/var/lib/postgresql/data
+    command: [
+      "postgres",
+      "-c", "shared_buffers=16MB",
+      "-c", "work_mem=2MB",
+      "-c", "max_connections=15",
+      "-c", "temp_buffers=4MB",
+      "-c", "effective_cache_size=48MB"
+    ]
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.50'
+    # No exponemos el puerto 5432 al exterior por seguridad, solo vive dentro de la red interna
 
+  # Servidor Backend + Servidor de Archivos Estáticos (MiPlazo API)
+  api_prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: miplazo_api_prod
+    restart: always
+    depends_on:
+      - db_prod
+    ports:
+      - "8080:8080" # Mapea el puerto de tu droplet al contenedor
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.25'
+    environment:
+      # Configuración de base de datos apuntando al contenedor de postgres interno
+      DB_HOST: db_prod
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-miplazo_admin}
+      DB_PASSWORD: ${DB_PASSWORD:-CambiaEstaClaveEnElDroplet2026}
+      DB_NAME: ${DB_NAME:-miplazo_finance}
+      DB_SSLMODE: disable # Conexión interna segura entre contenedores
+      
+      # 🔐 Variables Críticas de Seguridad
+      APP_ENV: production # Activará automáticamente 'Secure: true' para tus cookies JWT
+      JWT_SECRET: ${JWT_SECRET:-CambiaEstaClaveSecretaJWT2026} # Obligatorio. Si no se provee en las variables del servidor, Go abortará.
 volumes:
-  postgres_data:
+  postgres_prod_data: # Volumen persistente para que no pierdas tus finanzas si el contenedor se reinicia

@@ -1257,5 +1257,21 @@ MEJORAS DE NEGOCIO Y CONSISTENCIA FINANCIERA (MAYO 2026)
      * Calcula el balance financiero neto del usuario consultando `transactions` (ingresos - gastos).
      * Calcula la suma de dinero ya retenida/comprometida en otras metas de ahorro.
      * Si la nueva asignación de fondos (`req.CurrentAmount + otherGoalsAllocated`) supera el saldo neto disponible del usuario, la petición es denegada con un código `400 Bad Request` y el mensaje de error: `{"error": "Saldo insuficiente en tu balance general para cubrir este monto de ahorro"}`.
+
+4. CONSISTENCIA FINANCIERA EN ELIMINACIÓN DE TRANSACCIONES (DeleteTransaction):
+   - En `internal/transactions/transactions.go`: Se implementó un control transaccional de base de datos (`db.BeginTx`) al eliminar transacciones. Si la transacción eliminada disminuye el balance general neto por debajo del total comprometido en las metas de ahorro, el sistema deduce automáticamente y de forma progresiva (comenzando por las más recientes) el progreso de las metas de ahorro para evitar inconsistencias financieras.
+   - Se inyectó bloqueo de filas (`FOR UPDATE`) en el SELECT de transacciones y metas para mitigar condiciones de carrera y ataques de concurrencia.
+
+5. CONSISTENCIA FINANCIERA EN EDICIÓN DE TRANSACCIONES (UpdateTransaction):
+   - En `internal/transactions/transactions.go`: Se refactorizó la actualización de transacciones para ejecutarse dentro de una transacción SQL (`db.BeginTx`).
+   - Se realiza bloqueo de fila (`FOR UPDATE`) al obtener la transacción para asegurar consistencia y mitigar IDOR.
+   - Tras actualizar la transacción, se recalcula el balance general neto del usuario y se ejecuta `adjustGoalsToBalance` de forma idéntica al flujo de eliminación, ajustando progresivamente a la baja el saldo de las metas si el nuevo balance disponible es insuficiente.
+
+6. MEJORAS DE FRONTEND: MODO OSCURO PREMIUM Y AJUSTE RÁPIDO DE METAS:
+   - En `ui/index.html`: Se implementó un Modo Oscuro Premium permanente usando una paleta predominantemente negra (`#09090b` / `bg-zinc-950`) y blanca (`bg-white` / `text-white` en acentos secundarios).
+   - Se agregó un modal interactivo de Ajuste de Saldo de Metas que valida en tiempo real la disponibilidad de fondos (monto máximo disponible = balance libre global + saldo actual de la meta).
+   - Se añadieron acciones rápidas a cada tarjeta de meta:
+     * **Vaciar**: Pone el saldo de la meta en $0 en un clic (devolviéndolo al balance general disponible).
+     * **Aportar Todo**: Asigna el máximo balance libre disponible actual a la meta seleccionada (limitado por la diferencia para completar su monto objetivo).
 ```
 

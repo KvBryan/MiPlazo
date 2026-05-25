@@ -26,6 +26,7 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #09090b;
         }
         /* Custom scrollbar for table style */
         .custom-scrollbar::-webkit-scrollbar {
@@ -33,39 +34,38 @@
             height: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
+            background: #09090b;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+            background: #27272a;
             border-radius: 3px;
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 transition-all duration-300">
+<body class="bg-zinc-950 min-h-screen text-zinc-100 transition-all duration-300">
 
     <!-- PANTALLA DE ACCESO (LOGIN/REGISTRO) -->
-    <div id="auth-screen" class="flex min-h-screen items-center justify-center p-4 bg-slate-900 bg-opacity-40 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full overflow-hidden transition-all duration-300 transform scale-100">
+    <div id="auth-screen" class="flex min-h-screen items-center justify-center p-4 bg-zinc-950">
+        <div class="bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-800 max-w-md w-full overflow-hidden transition-all duration-300 transform scale-100">
             <!-- Encabezado Auth -->
-            <div class="bg-emerald-600 px-6 py-8 text-center text-white relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-600 opacity-90"></div>
+            <div class="bg-zinc-950 px-6 py-8 text-center text-white relative border-b border-zinc-800">
                 <div class="relative z-10">
-                    <div class="inline-flex items-center justify-center p-3 bg-white bg-opacity-10 rounded-xl mb-3">
+                    <div class="inline-flex items-center justify-center p-3 bg-white bg-opacity-5 border border-zinc-800 rounded-xl mb-3">
                         <i data-lucide="wallet" class="h-8 w-8 text-white"></i>
                     </div>
-                    <h1 class="text-2xl font-bold tracking-tight">MiPlazo</h1>
-                    <p class="text-emerald-100 text-sm mt-1">Toma el control de tus metas y finanzas</p>
+                    <h1 class="text-2xl font-bold tracking-tight text-white">MiPlazo</h1>
+                    <p class="text-zinc-400 text-sm mt-1">Gestión Financiera Premium & Segura</p>
                 </div>
             </div>
 
             <!-- Formularios de Auth -->
             <div class="p-6">
                 <!-- Selector de Pestañas (Tabs) -->
-                <div class="flex border-b border-slate-100 mb-6">
-                    <button id="tab-login-btn" class="flex-1 pb-3 text-center font-semibold text-emerald-600 border-b-2 border-emerald-600 focus:outline-none transition-colors" onclick="switchAuthTab('login')">
+                <div class="flex border-b border-zinc-800 mb-6">
+                    <button id="tab-login-btn" class="flex-1 pb-3 text-center font-semibold text-white border-b-2 border-white focus:outline-none transition-colors" onclick="switchAuthTab('login')">
                         Iniciar Sesión
                     </button>
-                    <button id="tab-register-btn" class="flex-1 pb-3 text-center font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-colors" onclick="switchAuthTab('register')">
+                    <button id="tab-register-btn" class="flex-1 pb-3 text-center font-semibold text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 focus:outline-none transition-colors" onclick="switchAuthTab('register')">
                         Registrarse
                     </button>
                 </div>
@@ -76,24 +76,24 @@
                 <!-- Formulario de Iniciar Sesión -->
                 <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Correo Electrónico</label>
+                        <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Correo Electrónico</label>
                         <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-500">
                                 <i data-lucide="mail" class="h-4 w-4"></i>
                             </span>
-                            <input type="email" id="login-email" required placeholder="correo@ejemplo.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                            <input type="email" id="login-email" required placeholder="correo@ejemplo.com" class="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-white focus:bg-zinc-900 transition-all text-sm text-white placeholder-zinc-600">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Contraseña</label>
+                        <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Contraseña</label>
                         <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-500">
                                 <i data-lucide="lock" class="h-4 w-4"></i>
                             </span>
-                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-white focus:bg-zinc-900 transition-all text-sm text-white placeholder-zinc-600">
                         </div>
                     </div>
-                    <button type="submit" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-700/30 flex items-center justify-center gap-2 text-sm mt-6">
+                    <button type="submit" class="w-full py-3 px-4 bg-white hover:bg-zinc-200 text-zinc-950 font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm mt-6">
                         <span>Ingresar a la Plataforma</span>
                         <i data-lucide="arrow-right" class="h-4 w-4"></i>
                     </button>
@@ -102,24 +102,24 @@
                 <!-- Formulario de Registro -->
                 <form id="register-form" class="space-y-4 hidden" onsubmit="handleRegister(event)">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Correo Electrónico</label>
+                        <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Correo Electrónico</label>
                         <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-500">
                                 <i data-lucide="mail" class="h-4 w-4"></i>
                             </span>
-                            <input type="email" id="register-email" required placeholder="correo@ejemplo.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                            <input type="email" id="register-email" required placeholder="correo@ejemplo.com" class="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-white focus:bg-zinc-900 transition-all text-sm text-white placeholder-zinc-600">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Contraseña (Mínimo 8 caracteres)</label>
+                        <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Contraseña (Mínimo 8 caracteres)</label>
                         <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-500">
                                 <i data-lucide="lock" class="h-4 w-4"></i>
                             </span>
-                            <input type="password" id="register-password" required minlength="8" placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                            <input type="password" id="register-password" required minlength="8" placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-white focus:bg-zinc-900 transition-all text-sm text-white placeholder-zinc-600">
                         </div>
                     </div>
-                    <button type="submit" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-700/30 flex items-center justify-center gap-2 text-sm mt-6">
+                    <button type="submit" class="w-full py-3 px-4 bg-white hover:bg-zinc-200 text-zinc-950 font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm mt-6">
                         <span>Crear Cuenta Nueva</span>
                         <i data-lucide="user-plus" class="h-4 w-4"></i>
                     </button>
@@ -129,25 +129,25 @@
     </div>
 
     <!-- PANTALLA PRINCIPAL DEL DASHBOARD (INICIALMENTE OCULTA) -->
-    <div id="dashboard-screen" class="hidden min-h-screen flex flex-col">
+    <div id="dashboard-screen" class="hidden min-h-screen flex flex-col bg-zinc-950">
         <!-- Header -->
-        <header class="bg-white border-b border-slate-100 sticky top-0 z-40 shadow-sm">
+        <header class="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-40 shadow-md">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
                 <!-- Logo -->
                 <div class="flex items-center gap-2">
-                    <div class="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <div class="p-2 bg-zinc-800 text-white border border-zinc-700 rounded-xl">
                         <i data-lucide="wallet" class="h-6 w-6"></i>
                     </div>
-                    <span class="text-xl font-bold tracking-tight text-slate-900">MiPlazo</span>
+                    <span class="text-xl font-bold tracking-tight text-white">MiPlazo</span>
                 </div>
 
                 <!-- Info y Cierre -->
                 <div class="flex items-center gap-4">
                     <div class="text-right hidden sm:block">
-                        <span id="user-email-display" class="block text-xs font-semibold text-slate-500">usuario@miplazo.com</span>
-                        <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">Sesión Segura OWASP</span>
+                        <span id="user-email-display" class="block text-xs font-semibold text-zinc-400">usuario@miplazo.com</span>
+                        <span class="text-[10px] text-zinc-300 bg-zinc-850 border border-zinc-800 px-2 py-0.5 rounded-full font-bold">Sesión Segura OWASP</span>
                     </div>
-                    <button onclick="handleLogout()" class="px-4 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all text-xs font-semibold flex items-center gap-2">
+                    <button onclick="handleLogout()" class="px-4 py-2 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 rounded-xl text-zinc-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-2">
                         <i data-lucide="log-out" class="h-4 w-4"></i>
                         <span>Cerrar Sesión</span>
                     </button>
@@ -160,33 +160,33 @@
             <!-- Panel Rápido de Balances (KPIs) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Net Balance -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div class="bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-800 flex items-center justify-between">
                     <div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Balance General Neto</span>
-                        <h3 id="balance-amount" class="text-2xl font-bold text-slate-800 mt-1">$0.00</h3>
-                        <span id="free-balance-display" class="text-[10px] text-slate-400 font-semibold mt-1 block">Disponible para metas: $0.00</span>
+                        <span class="text-xs font-bold text-zinc-500 uppercase tracking-wider">Balance General Neto</span>
+                        <h3 id="balance-amount" class="text-2xl font-bold text-white mt-1">$0.00</h3>
+                        <span id="free-balance-display" class="text-[10px] text-zinc-400 font-semibold mt-1 block">Disponible para metas: $0.00</span>
                     </div>
-                    <div class="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                    <div class="p-3 bg-zinc-950 border border-zinc-800 text-zinc-300 rounded-2xl">
                         <i data-lucide="scale" class="h-6 w-6"></i>
                     </div>
                 </div>
                 <!-- Income -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div class="bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-800 flex items-center justify-between">
                     <div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Ingresos</span>
-                        <h3 id="income-amount" class="text-2xl font-bold text-emerald-600 mt-1">$0.00</h3>
+                        <span class="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Ingresos</span>
+                        <h3 id="income-amount" class="text-2xl font-bold text-emerald-400 mt-1">$0.00</h3>
                     </div>
-                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+                    <div class="p-3 bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 rounded-2xl">
                         <i data-lucide="trending-up" class="h-6 w-6"></i>
                     </div>
                 </div>
                 <!-- Expenses -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div class="bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-800 flex items-center justify-between">
                     <div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Gastos</span>
-                        <h3 id="expense-amount" class="text-2xl font-bold text-rose-600 mt-1">$0.00</h3>
+                        <span class="text-xs font-bold text-zinc-500 uppercase tracking-wider">Total Gastos</span>
+                        <h3 id="expense-amount" class="text-2xl font-bold text-rose-400 mt-1">$0.00</h3>
                     </div>
-                    <div class="p-3 bg-rose-50 text-rose-600 rounded-2xl">
+                    <div class="p-3 bg-rose-950/40 text-rose-400 border border-rose-800/40 rounded-2xl">
                         <i data-lucide="trending-down" class="h-6 w-6"></i>
                     </div>
                 </div>
@@ -197,36 +197,36 @@
                 <!-- Columna Izquierda: Metas y Registrador -->
                 <div class="space-y-8 lg:col-span-1">
                     <!-- SECCIÓN CORE: Metas de Ahorro -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-6">
+                    <div class="bg-zinc-900 rounded-2xl shadow-sm border border-zinc-800 p-6 space-y-6">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <i data-lucide="target" class="text-emerald-600 h-5 w-5"></i>
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="target" class="text-white h-5 w-5"></i>
                                 <span>Metas de Ahorro</span>
                             </h2>
-                            <button onclick="toggleGoalForm()" class="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors" title="Crear Meta Nueva">
+                            <button onclick="toggleGoalForm()" class="p-1.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white rounded-lg transition-colors" title="Crear Meta Nueva">
                                 <i data-lucide="plus" class="h-4 w-4"></i>
                             </button>
                         </div>
 
                         <!-- Formulario Oculto para Crear Meta -->
-                        <form id="goal-form" class="space-y-3 hidden bg-slate-50 p-4 rounded-xl border border-slate-200/60" onsubmit="handleCreateGoal(event)">
+                        <form id="goal-form" class="space-y-3 hidden bg-zinc-950 p-4 rounded-xl border border-zinc-800" onsubmit="handleCreateGoal(event)">
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Título de la Meta</label>
-                                <input type="text" id="goal-title" required placeholder="Ej: Curso de Trading" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs">
+                                <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Título de la Meta</label>
+                                <input type="text" id="goal-title" required placeholder="Ej: Curso de Trading" class="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-white text-xs text-white">
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Monto Objetivo</label>
-                                    <input type="number" id="goal-target" required min="1" step="any" placeholder="1000" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs font-semibold">
+                                    <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Monto Objetivo</label>
+                                    <input type="number" id="goal-target" required min="1" step="any" placeholder="1000" class="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-white text-xs font-semibold text-white">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Límite</label>
-                                    <input type="date" id="goal-deadline" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs">
+                                    <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Fecha Límite</label>
+                                    <input type="date" id="goal-deadline" required class="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-white text-xs text-white">
                                 </div>
                             </div>
                             <div class="flex gap-2 mt-2">
-                                <button type="button" onclick="toggleGoalForm()" class="flex-1 py-1.5 border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-500 text-[10px] font-bold transition-colors">Cancelar</button>
-                                <button type="submit" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow transition-colors">Guardar</button>
+                                <button type="button" onclick="toggleGoalForm()" class="flex-1 py-1.5 border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-400 text-[10px] font-bold transition-colors">Cancelar</button>
+                                <button type="submit" class="flex-1 py-1.5 bg-white hover:bg-zinc-200 text-zinc-950 rounded-lg text-[10px] font-bold shadow transition-colors">Guardar</button>
                             </div>
                         </form>
 
@@ -237,13 +237,13 @@
                     </div>
 
                     <!-- SECCIÓN OPERATIVA: Formulario de Registro -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="bg-zinc-900 rounded-2xl shadow-sm border border-zinc-800 overflow-hidden">
                         <!-- Pestañas de Tipo de Operación -->
-                        <div class="flex border-b border-slate-100">
-                            <button id="tab-income-btn" class="flex-1 py-3 text-center font-bold text-emerald-600 border-b-2 border-emerald-600 focus:outline-none transition-all text-xs" onclick="switchTxFormType('INCOME')">
+                        <div class="flex border-b border-zinc-800">
+                            <button id="tab-income-btn" class="flex-1 py-3 text-center font-bold text-white border-b-2 border-white focus:outline-none transition-all text-xs" onclick="switchTxFormType('INCOME')">
                                 <i data-lucide="arrow-down-left" class="inline h-3.5 w-3.5 mr-1"></i>Ingreso
                             </button>
-                            <button id="tab-expense-btn" class="flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-all text-xs" onclick="switchTxFormType('EXPENSE')">
+                            <button id="tab-expense-btn" class="flex-1 py-3 text-center font-bold text-zinc-500 border-b-2 border-transparent hover:text-zinc-350 focus:outline-none transition-all text-xs" onclick="switchTxFormType('EXPENSE')">
                                 <i data-lucide="arrow-up-right" class="inline h-3.5 w-3.5 mr-1"></i>Gasto
                             </button>
                         </div>
@@ -252,18 +252,18 @@
                         <form id="tx-form" class="p-6 space-y-4" onsubmit="handleCreateTransaction(event)">
                             <input type="hidden" id="tx-type" value="INCOME">
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Monto ($)</label>
-                                <input type="number" id="tx-amount" required min="0.01" step="any" placeholder="0.00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm font-semibold">
+                                <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Monto ($)</label>
+                                <input type="number" id="tx-amount" required min="0.01" step="any" placeholder="0.00" class="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-white focus:bg-zinc-900 transition-all text-sm font-semibold text-white">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Descripción</label>
-                                <input type="text" id="tx-description" required placeholder="Concepto de la transacción" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                                <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Descripción</label>
+                                <input type="text" id="tx-description" required placeholder="Concepto de la transacción" class="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-white focus:bg-zinc-900 transition-all text-sm text-white">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha</label>
-                                <input type="date" id="tx-date" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm">
+                                <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Fecha</label>
+                                <input type="date" id="tx-date" required class="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-white focus:bg-zinc-900 transition-all text-sm text-white">
                             </div>
-                            <button type="submit" id="tx-submit-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-md shadow-emerald-600/10 flex items-center justify-center gap-2 text-xs mt-6">
+                            <button type="submit" id="tx-submit-btn" class="w-full py-3 bg-white hover:bg-zinc-200 text-zinc-950 font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-xs mt-6">
                                 <i data-lucide="plus-circle" class="h-4 w-4"></i>
                                 <span>Registrar Ingreso</span>
                             </button>
@@ -273,28 +273,28 @@
 
                 <!-- Columna Derecha: Tabla de Transacciones -->
                 <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-full space-y-6">
+                    <div class="bg-zinc-900 rounded-2xl shadow-sm border border-zinc-800 p-6 flex flex-col h-full space-y-6">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <i data-lucide="file-text" class="text-emerald-600 h-5 w-5"></i>
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="file-text" class="text-white h-5 w-5"></i>
                                 <span>Historial de Transacciones</span>
                             </h2>
-                            <span id="tx-count" class="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-200/40">0 registros</span>
+                            <span id="tx-count" class="text-xs font-bold text-zinc-400 bg-zinc-950 px-3 py-1 rounded-full border border-zinc-800">0 registros</span>
                         </div>
 
                         <!-- Tabla Excel-Style Contenedor -->
-                        <div class="overflow-x-auto custom-scrollbar border border-slate-200/60 rounded-xl">
-                            <table class="min-w-full divide-y divide-slate-100 text-sm">
-                                <thead class="bg-slate-50">
+                        <div class="overflow-x-auto custom-scrollbar border border-zinc-800 rounded-xl">
+                            <table class="min-w-full divide-y divide-zinc-800 text-sm">
+                                <thead class="bg-zinc-950">
                                     <tr>
-                                        <th scope="col" class="px-6 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Fecha</th>
-                                        <th scope="col" class="px-6 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Descripción</th>
-                                        <th scope="col" class="px-6 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Tipo</th>
-                                        <th scope="col" class="px-6 py-3.5 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Monto</th>
-                                        <th scope="col" class="px-6 py-3.5 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Acciones</th>
+                                        <th scope="col" class="px-6 py-3.5 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Fecha</th>
+                                        <th scope="col" class="px-6 py-3.5 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Descripción</th>
+                                        <th scope="col" class="px-6 py-3.5 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Tipo</th>
+                                        <th scope="col" class="px-6 py-3.5 text-right text-xs font-bold text-zinc-400 uppercase tracking-wider">Monto</th>
+                                        <th scope="col" class="px-6 py-3.5 text-center text-xs font-bold text-zinc-400 uppercase tracking-wider">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody id="transactions-table-body" class="bg-white divide-y divide-slate-100">
+                                <tbody id="transactions-table-body" class="bg-zinc-900 divide-y divide-zinc-800">
                                     <!-- Carga dinámica de transacciones -->
                                 </tbody>
                             </table>
@@ -306,41 +306,72 @@
     </div>
 
     <!-- MODAL DE EDICIÓN DE TRANSACCIÓN -->
-    <div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900 bg-opacity-50 backdrop-blur-sm hidden">
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full p-6 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="edit-3" class="text-emerald-600 h-4 w-4"></i>
+    <div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70 backdrop-blur-sm hidden">
+        <div class="bg-zinc-900 rounded-2xl shadow-xl border border-zinc-800 max-w-md w-full p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="edit-3" class="text-white h-4 w-4"></i>
                     <span>Editar Transacción</span>
                 </h3>
-                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600">
+                <button onclick="closeEditModal()" class="text-zinc-400 hover:text-white">
                     <i data-lucide="x" class="h-4 w-4"></i>
                 </button>
             </div>
             <form id="edit-tx-form" onsubmit="handleUpdateTransaction(event)" class="space-y-4">
                 <input type="hidden" id="edit-tx-id">
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tipo</label>
-                    <select id="edit-tx-type" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs">
+                    <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Tipo</label>
+                    <select id="edit-tx-type" class="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-white text-xs text-white">
                         <option value="INCOME">Ingreso</option>
                         <option value="EXPENSE">Gasto</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Monto ($)</label>
-                    <input type="number" id="edit-tx-amount" required min="0.01" step="any" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs font-semibold">
+                    <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Monto ($)</label>
+                    <input type="number" id="edit-tx-amount" required min="0.01" step="any" class="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-white text-xs font-semibold text-white">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Descripción</label>
-                    <input type="text" id="edit-tx-description" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs">
+                    <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Descripción</label>
+                    <input type="text" id="edit-tx-description" required class="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-white text-xs text-white">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha</label>
-                    <input type="date" id="edit-tx-date" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs">
+                    <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Fecha</label>
+                    <input type="date" id="edit-tx-date" required class="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-white text-xs text-white">
                 </div>
                 <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="closeEditModal()" class="flex-1 py-2 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-500 text-xs font-bold transition-colors">Cancelar</button>
-                    <button type="submit" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow transition-colors">Guardar Cambios</button>
+                    <button type="button" onclick="closeEditModal()" class="flex-1 py-2 border border-zinc-800 hover:bg-zinc-800 rounded-xl text-zinc-400 text-xs font-bold transition-colors">Cancelar</button>
+                    <button type="submit" class="flex-1 py-2 bg-white hover:bg-zinc-200 text-zinc-950 rounded-xl text-xs font-bold shadow transition-colors">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE EDICIÓN DE META DE AHORRO -->
+    <div id="edit-goal-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70 backdrop-blur-sm hidden">
+        <div class="bg-zinc-900 rounded-2xl shadow-xl border border-zinc-800 max-w-md w-full p-6 space-y-4 text-zinc-100">
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="edit-3" class="text-white h-4 w-4"></i>
+                    <span>Ajustar Saldo de Meta</span>
+                </h3>
+                <button onclick="closeEditGoalModal()" class="text-zinc-400 hover:text-white">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+            <div class="text-xs text-zinc-400 bg-zinc-950 p-3 rounded-lg border border-zinc-800">
+                <p class="mb-1">Meta: <span id="edit-goal-title-display" class="font-bold text-white"></span></p>
+                <p class="mb-1">Monto Objetivo: <span id="edit-goal-target-display" class="font-bold text-white"></span></p>
+                <p>Disponible para reasignar (balance libre + propio de esta meta): <span id="edit-goal-available-display" class="font-bold text-emerald-450 text-emerald-400"></span></p>
+            </div>
+            <form id="edit-goal-form" onsubmit="handleUpdateGoalAmount(event)" class="space-y-4">
+                <input type="hidden" id="edit-goal-id">
+                <div>
+                    <label class="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Monto Asignado Actual ($)</label>
+                    <input type="number" id="edit-goal-current-amount" required min="0" step="any" class="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-white text-xs font-semibold text-white">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeEditGoalModal()" class="flex-1 py-2 border border-zinc-800 hover:bg-zinc-800 rounded-xl text-zinc-400 text-xs font-bold transition-colors">Cancelar</button>
+                    <button type="submit" class="flex-1 py-2 bg-white hover:bg-zinc-200 text-zinc-950 rounded-xl text-xs font-bold shadow transition-colors">Guardar Cambios</button>
                 </div>
             </form>
         </div>
@@ -371,13 +402,13 @@
             alertBox.classList.add('hidden');
 
             if (tab === 'login') {
-                loginBtn.className = "flex-1 pb-3 text-center font-semibold text-emerald-600 border-b-2 border-emerald-600 focus:outline-none transition-colors";
-                registerBtn.className = "flex-1 pb-3 text-center font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-colors";
+                loginBtn.className = "flex-1 pb-3 text-center font-semibold text-white border-b-2 border-white focus:outline-none transition-colors";
+                registerBtn.className = "flex-1 pb-3 text-center font-semibold text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 focus:outline-none transition-colors";
                 loginForm.classList.remove('hidden');
                 registerForm.classList.add('hidden');
             } else {
-                registerBtn.className = "flex-1 pb-3 text-center font-semibold text-emerald-600 border-b-2 border-emerald-600 focus:outline-none transition-colors";
-                loginBtn.className = "flex-1 pb-3 text-center font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-colors";
+                registerBtn.className = "flex-1 pb-3 text-center font-semibold text-white border-b-2 border-white focus:outline-none transition-colors";
+                loginBtn.className = "flex-1 pb-3 text-center font-semibold text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 focus:outline-none transition-colors";
                 registerForm.classList.remove('hidden');
                 loginForm.classList.add('hidden');
             }
@@ -386,13 +417,13 @@
         // 2. Mostrar Alertas de Acceso
         function showAuthAlert(type, message) {
             const alertBox = document.getElementById('auth-alert');
-            alertBox.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'bg-emerald-50', 'text-emerald-700');
+            alertBox.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'bg-emerald-50', 'text-emerald-700', 'bg-rose-950/40', 'text-rose-455', 'border', 'border-rose-800/40', 'bg-zinc-900', 'text-zinc-200', 'border-zinc-800');
             
             if (type === 'error') {
-                alertBox.classList.add('bg-red-50', 'text-red-700');
+                alertBox.classList.add('bg-rose-950/40', 'text-rose-400', 'border', 'border-rose-800/40');
                 alertBox.innerHTML = `<i data-lucide="alert-circle" class="h-4 w-4"></i> <span>${message}</span>`;
             } else {
-                alertBox.classList.add('bg-emerald-50', 'text-emerald-700');
+                alertBox.classList.add('bg-zinc-900', 'text-zinc-200', 'border', 'border-zinc-800');
                 alertBox.innerHTML = `<i data-lucide="check-circle" class="h-4 w-4"></i> <span>${message}</span>`;
             }
             lucide.createIcons();
@@ -577,9 +608,9 @@
             const balanceEl = document.getElementById('balance-amount');
             balanceEl.innerText = formatCurrency(netBalance);
             if (netBalance < 0) {
-                balanceEl.className = "text-2xl font-bold text-rose-600 mt-1";
+                balanceEl.className = "text-2xl font-bold text-rose-455 text-rose-400 mt-1";
             } else {
-                balanceEl.className = "text-2xl font-bold text-slate-800 mt-1";
+                balanceEl.className = "text-2xl font-bold text-white mt-1";
             }
         }
 
@@ -590,10 +621,10 @@
 
             if (goalsData.length === 0) {
                 container.innerHTML = `
-                    <div class="text-center py-6 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <div class="text-center py-6 text-zinc-500 bg-zinc-950 rounded-xl border border-dashed border-zinc-800">
                         <i data-lucide="target" class="h-8 w-8 mx-auto mb-2 opacity-50"></i>
                         <p class="text-xs">No tienes metas de ahorro registradas.</p>
-                        <button onclick="toggleGoalForm()" class="text-xs text-emerald-600 font-bold hover:underline mt-1">Crea tu primera meta</button>
+                        <button onclick="toggleGoalForm()" class="text-xs text-white font-bold hover:underline mt-1">Crea tu primera meta</button>
                     </div>
                 `;
                 return;
@@ -606,55 +637,70 @@
                 // Validación dinámica: si el balance libre es menor o igual a cero, deshabilitar aportaciones
                 const isDisabled = freeBalanceGlobal <= 0;
                 const buttonClass = isDisabled 
-                    ? "w-1/3 py-1.5 bg-slate-300 cursor-not-allowed text-slate-500 rounded-lg text-[10px] font-bold shadow-none flex items-center justify-center gap-1"
-                    : "w-1/3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow transition-colors flex items-center justify-center gap-1";
+                    ? "w-1/3 py-1.5 bg-zinc-800 cursor-not-allowed text-zinc-500 rounded-lg text-[10px] font-bold shadow-none flex items-center justify-center gap-1 border border-zinc-700/50"
+                    : "w-1/3 py-1.5 bg-white hover:bg-zinc-200 text-zinc-950 rounded-lg text-[10px] font-bold shadow transition-colors flex items-center justify-center gap-1";
 
                 const card = document.createElement('div');
-                card.className = "p-4 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100/50 transition-all space-y-3 relative group";
+                card.className = "p-4 rounded-xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-850/40 transition-all space-y-3 relative group";
                 card.innerHTML = `
                     <div class="flex items-start justify-between">
                         <div>
-                            <h4 class="font-bold text-sm text-slate-800">${escapeHTML(goal.title)}</h4>
-                            <span class="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                            <h4 class="font-bold text-sm text-white">${escapeHTML(goal.title)}</h4>
+                            <span class="text-[10px] text-zinc-400 font-medium flex items-center gap-1 mt-0.5">
                                 <i data-lucide="calendar" class="h-3 w-3"></i>
                                 <span>Límite: ${deadlineDate}</span>
                             </span>
                         </div>
-                        <button onclick="handleDeleteGoal(${goal.id})" class="text-slate-300 hover:text-rose-600 p-1 rounded transition-colors opacity-0 group-hover:opacity-100" title="Eliminar Meta">
-                            <i data-lucide="trash-2" class="h-4 w-4"></i>
-                        </button>
+                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="openEditGoalModal(${goal.id}, '${escapeHTML(goal.title).replace(/'/g, "\\'")}', ${goal.current_amount}, ${goal.target_amount})" class="text-zinc-400 hover:text-white p-1 rounded transition-colors" title="Ajustar Saldo">
+                                <i data-lucide="edit-3" class="h-4 w-4"></i>
+                            </button>
+                            <button onclick="handleDeleteGoal(${goal.id})" class="text-zinc-400 hover:text-rose-500 p-1 rounded transition-colors" title="Eliminar Meta">
+                                <i data-lucide="trash-2" class="h-4 w-4"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Progreso -->
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs font-semibold">
-                            <span class="text-slate-600">${formatCurrency(goal.current_amount)} de ${formatCurrency(goal.target_amount)}</span>
-                            <span class="text-emerald-600">${percent}%</span>
+                            <span class="text-zinc-300">${formatCurrency(goal.current_amount)} de ${formatCurrency(goal.target_amount)}</span>
+                            <span class="text-white font-bold">${percent}%</span>
                         </div>
-                        <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                            <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                        <div class="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+                            <div class="bg-white h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
                         </div>
                     </div>
 
                     <!-- Datos Desglosados -->
-                    <div class="grid grid-cols-2 gap-2 text-[10px] bg-white p-2.5 rounded-lg border border-slate-200/50">
+                    <div class="grid grid-cols-2 gap-2 text-[10px] bg-zinc-950 p-2.5 rounded-lg border border-zinc-800">
                         <div>
-                            <span class="text-slate-400 block">Faltan meses/semanas</span>
-                            <span class="font-bold text-slate-700">${goal.months_remaining.toFixed(0)} meses / ${goal.weeks_remaining.toFixed(0)} sem.</span>
+                            <span class="text-zinc-500 block font-medium">Faltan meses/semanas</span>
+                            <span class="font-bold text-zinc-300">${goal.months_remaining.toFixed(0)} meses / ${goal.weeks_remaining.toFixed(0)} sem.</span>
                         </div>
                         <div>
-                            <span class="text-slate-400 block">Ahorro Requerido</span>
-                            <span class="font-bold text-emerald-600 block">${formatCurrency(goal.monthly_saving_required)} / mes</span>
-                            <span class="font-bold text-teal-600">${formatCurrency(goal.weekly_saving_required)} / sem.</span>
+                            <span class="text-zinc-500 block font-medium">Ahorro Requerido</span>
+                            <span class="font-bold text-emerald-400 block">${formatCurrency(goal.monthly_saving_required)} / mes</span>
+                            <span class="font-bold text-teal-400">${formatCurrency(goal.weekly_saving_required)} / sem.</span>
                         </div>
                     </div>
 
                     <!-- Aportación Rápida -->
                     <div class="flex items-center gap-2 pt-1.5">
-                        <input type="number" id="contribution-${goal.id}" ${isDisabled ? 'disabled' : ''} step="any" placeholder="${isDisabled ? 'Sin saldo' : 'Aportar ($)'}" class="w-2/3 px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-emerald-500 disabled:bg-slate-200 disabled:text-slate-400">
+                        <input type="number" id="contribution-${goal.id}" ${isDisabled ? 'disabled' : ''} step="any" placeholder="${isDisabled ? 'Sin saldo' : 'Aportar ($)'}" class="w-2/3 px-2 py-1.5 bg-zinc-950 border border-zinc-800 text-white rounded-lg text-xs focus:outline-none focus:border-white disabled:bg-zinc-800 disabled:text-zinc-500 disabled:placeholder-zinc-650">
                         <button onclick="addProgress(${goal.id}, ${goal.current_amount})" ${isDisabled ? 'disabled' : ''} class="${buttonClass}">
                             <i data-lucide="plus" class="h-3 w-3"></i>
                             <span>Sumar</span>
+                        </button>
+                    </div>
+
+                    <!-- Acciones Rápidas Extra -->
+                    <div class="flex justify-between items-center text-[10px] text-zinc-400 pt-1 border-t border-zinc-800/40">
+                        <button onclick="quickVaciarGoal(${goal.id})" class="hover:text-rose-400 transition-colors flex items-center gap-1 font-semibold">
+                            <i data-lucide="rotate-ccw" class="h-3.5 w-3.5"></i> Vaciar
+                        </button>
+                        <button onclick="quickAportarTodo(${goal.id}, ${goal.current_amount}, ${goal.target_amount})" ${isDisabled || goal.current_amount >= goal.target_amount ? 'disabled' : ''} class="hover:text-white text-zinc-300 transition-colors flex items-center gap-1 font-semibold disabled:opacity-30 disabled:cursor-not-allowed">
+                            <i data-lucide="zap" class="h-3.5 w-3.5"></i> Aportar Todo
                         </button>
                     </div>
                 `;
@@ -672,7 +718,7 @@
             if (transactionsData.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-xs">
+                        <td colspan="5" class="px-6 py-12 text-center text-zinc-500 text-xs bg-zinc-900">
                             <i data-lucide="list" class="h-8 w-8 mx-auto mb-2 opacity-50"></i>
                             No hay transacciones cargadas en este período.
                         </td>
@@ -683,7 +729,7 @@
 
             transactionsData.forEach(tx => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50/50 transition-colors";
+                tr.className = "hover:bg-zinc-850/40 transition-colors bg-zinc-900";
                 
                 const txDate = new Date(tx.transaction_date).toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
                 
@@ -691,24 +737,24 @@
                 let amountClass = '';
                 
                 if (tx.type === 'INCOME') {
-                    typeBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/50"><i data-lucide="arrow-down-left" class="h-3 w-3"></i> Ingreso</span>`;
-                    amountClass = "px-6 py-4 text-right whitespace-nowrap text-sm font-bold text-emerald-600";
+                    typeBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-400 border border-emerald-800/40"><i data-lucide="arrow-down-left" class="h-3 w-3"></i> Ingreso</span>`;
+                    amountClass = "px-6 py-4 text-right whitespace-nowrap text-sm font-bold text-emerald-400";
                 } else {
-                    typeBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/50"><i data-lucide="arrow-up-right" class="h-3 w-3"></i> Gasto</span>`;
-                    amountClass = "px-6 py-4 text-right whitespace-nowrap text-sm font-bold text-rose-600";
+                    typeBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-950/40 text-rose-400 border border-rose-800/40"><i data-lucide="arrow-up-right" class="h-3 w-3"></i> Gasto</span>`;
+                    amountClass = "px-6 py-4 text-right whitespace-nowrap text-sm font-bold text-rose-450 text-rose-400";
                 }
 
                 tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500 font-medium">${txDate}</td>
-                    <td class="px-6 py-4 text-slate-700 font-semibold text-xs max-w-xs truncate" title="${escapeHTML(tx.description)}">${escapeHTML(tx.description)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-zinc-400 font-medium">${txDate}</td>
+                    <td class="px-6 py-4 text-zinc-200 font-semibold text-xs max-w-xs truncate" title="${escapeHTML(tx.description)}">${escapeHTML(tx.description)}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-xs">${typeBadge}</td>
                     <td class="${amountClass}">${formatCurrency(tx.amount)}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-center text-xs">
                         <div class="flex justify-center gap-1.5">
-                            <button onclick="openEditModal(${tx.id})" class="text-slate-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-slate-100 transition-all" title="Editar">
+                            <button onclick="openEditModal(${tx.id})" class="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-zinc-800 transition-all" title="Editar">
                                 <i data-lucide="edit-3" class="h-4 w-4"></i>
                             </button>
-                            <button onclick="handleDeleteTransaction(${tx.id})" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-100 transition-all" title="Eliminar">
+                            <button onclick="handleDeleteTransaction(${tx.id})" class="text-zinc-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-zinc-800 transition-all" title="Eliminar">
                                 <i data-lucide="trash-2" class="h-4 w-4"></i>
                             </button>
                         </div>
@@ -818,14 +864,14 @@
             typeInput.value = type;
 
             if (type === 'INCOME') {
-                tabIncome.className = "flex-1 py-3 text-center font-bold text-emerald-600 border-b-2 border-emerald-600 focus:outline-none transition-all text-xs";
-                tabExpense.className = "flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-all text-xs";
-                submitBtn.className = "w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-md shadow-emerald-600/10 flex items-center justify-center gap-2 text-xs mt-6";
+                tabIncome.className = "flex-1 py-3 text-center font-bold text-white border-b-2 border-white focus:outline-none transition-all text-xs";
+                tabExpense.className = "flex-1 py-3 text-center font-bold text-zinc-500 border-b-2 border-transparent hover:text-zinc-350 focus:outline-none transition-all text-xs";
+                submitBtn.className = "w-full py-3 bg-white hover:bg-zinc-200 text-zinc-950 font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-xs mt-6";
                 submitBtn.innerHTML = `<i data-lucide="plus-circle" class="h-4 w-4"></i> <span>Registrar Ingreso</span>`;
             } else {
-                tabExpense.className = "flex-1 py-3 text-center font-bold text-rose-600 border-b-2 border-rose-600 focus:outline-none transition-all text-xs";
-                tabIncome.className = "flex-1 py-3 text-center font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 focus:outline-none transition-all text-xs";
-                submitBtn.className = "w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl transition-all shadow-md shadow-rose-600/10 flex items-center justify-center gap-2 text-xs mt-6";
+                tabExpense.className = "flex-1 py-3 text-center font-bold text-white border-b-2 border-white focus:outline-none transition-all text-xs";
+                tabIncome.className = "flex-1 py-3 text-center font-bold text-zinc-500 border-b-2 border-transparent hover:text-zinc-350 focus:outline-none transition-all text-xs";
+                submitBtn.className = "w-full py-3 bg-white hover:bg-zinc-200 text-zinc-950 font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-xs mt-6";
                 submitBtn.innerHTML = `<i data-lucide="minus-circle" class="h-4 w-4"></i> <span>Registrar Gasto</span>`;
             }
             lucide.createIcons();
@@ -926,6 +972,134 @@
                 }
             } catch (err) {
                 alert('Error al conectar con el servidor');
+            }
+        }
+
+        // 17. Funciones para Modal de Edición de Metas
+        let currentGoalMaxAvailable = 0;
+
+        function openEditGoalModal(goalId, title, currentAmount, targetAmount) {
+            const goal = goalsData.find(g => g.id === goalId);
+            if (!goal) return;
+
+            document.getElementById('edit-goal-id').value = goal.id;
+            document.getElementById('edit-goal-title-display').innerText = title;
+            document.getElementById('edit-goal-target-display').innerText = formatCurrency(targetAmount);
+            
+            // El máximo dinero disponible para esta meta es el balance libre global actual + lo que ya tiene esta meta asignado
+            currentGoalMaxAvailable = freeBalanceGlobal + currentAmount;
+            
+            document.getElementById('edit-goal-available-display').innerText = formatCurrency(currentGoalMaxAvailable);
+            document.getElementById('edit-goal-current-amount').value = currentAmount;
+
+            document.getElementById('edit-goal-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeEditGoalModal() {
+            document.getElementById('edit-goal-modal').classList.add('hidden');
+        }
+
+        async function handleUpdateGoalAmount(event) {
+            event.preventDefault();
+            const id = document.getElementById('edit-goal-id').value;
+            const newAmount = parseFloat(document.getElementById('edit-goal-current-amount').value);
+
+            if (isNaN(newAmount) || newAmount < 0) {
+                alert("Por favor, introduce un monto válido superior o igual a 0.");
+                return;
+            }
+
+            if (newAmount > currentGoalMaxAvailable) {
+                alert(`Operación Denegada: Saldo insuficiente. El monto máximo disponible para asignar a esta meta (incluyendo su saldo actual y el saldo libre) es de ${formatCurrency(currentGoalMaxAvailable)}.`);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/goals/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ current_amount: newAmount })
+                });
+
+                if (response.ok) {
+                    closeEditGoalModal();
+                    await loadDashboardData();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al actualizar el saldo de la meta');
+                }
+            } catch (err) {
+                alert('Error al conectar con el servidor');
+            }
+        }
+
+        // 18. Acciones Rápidas (Vaciar y Aportar Todo)
+        async function quickVaciarGoal(goalId) {
+            const goal = goalsData.find(g => g.id === goalId);
+            if (!goal) return;
+
+            if (goal.current_amount === 0) {
+                alert("La meta ya está vacía.");
+                return;
+            }
+
+            if (!confirm(`¿Estás seguro de vaciar la meta "${goal.title}"? El monto de ${formatCurrency(goal.current_amount)} regresará al balance libre.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/goals/${goalId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ current_amount: 0 })
+                });
+
+                if (response.ok) {
+                    await loadDashboardData();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'No se pudo vaciar la meta');
+                }
+            } catch (err) {
+                alert('Error de red al vaciar la meta');
+            }
+        }
+
+        async function quickAportarTodo(goalId, currentAmount, targetAmount) {
+            const needed = targetAmount - currentAmount;
+            if (needed <= 0) {
+                alert("La meta ya está completada.");
+                return;
+            }
+
+            if (freeBalanceGlobal <= 0) {
+                alert("No tienes saldo libre disponible para aportar.");
+                return;
+            }
+
+            const contribution = Math.min(needed, freeBalanceGlobal);
+            const newAmount = currentAmount + contribution;
+
+            if (!confirm(`¿Deseas aportar ${formatCurrency(contribution)} a la meta?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/goals/${goalId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ current_amount: newAmount })
+                });
+
+                if (response.ok) {
+                    await loadDashboardData();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'No se pudo realizar la aportación');
+                }
+            } catch (err) {
+                alert('Error de red al aportar a la meta');
             }
         }
 

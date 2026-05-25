@@ -120,7 +120,7 @@ func (h *Handler) GetGoals(w http.ResponseWriter, r *http.Request) {
     query := `
         SELECT id, title, target_amount, current_amount, deadline
         FROM saving_goals
-        WHERE user_id = $1
+        WHERE user_id = $1 AND is_active = TRUE
         ORDER BY created_at DESC
     `
     rows, err := h.db.QueryContext(r.Context(), query, userID)
@@ -230,7 +230,7 @@ func (h *Handler) UpdateProgress(w http.ResponseWriter, r *http.Request) {
 	balanceQuery := `
 		SELECT COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount ELSE -amount END), 0)
 		FROM transactions
-		WHERE user_id = $1
+		WHERE user_id = $1 AND is_active = TRUE
 	`
 	err = h.db.QueryRowContext(r.Context(), balanceQuery, userID).Scan(&netBalance)
 	if err != nil {
@@ -243,7 +243,7 @@ func (h *Handler) UpdateProgress(w http.ResponseWriter, r *http.Request) {
 	allocatedQuery := `
 		SELECT COALESCE(SUM(current_amount), 0)
 		FROM saving_goals
-		WHERE user_id = $1 AND id != $2
+		WHERE user_id = $1 AND id != $2 AND is_active = TRUE
 	`
 	err = h.db.QueryRowContext(r.Context(), allocatedQuery, userID, goalID).Scan(&otherGoalsAllocated)
 	if err != nil {
@@ -260,7 +260,7 @@ func (h *Handler) UpdateProgress(w http.ResponseWriter, r *http.Request) {
 	query := `
 		UPDATE saving_goals
 		SET current_amount = $1
-		WHERE id = $2 AND user_id = $3
+		WHERE id = $2 AND user_id = $3 AND is_active = TRUE
 	`
 	result, err := h.db.ExecContext(r.Context(), query, req.CurrentAmount, goalID, userID)
 	if err != nil {
@@ -296,7 +296,7 @@ func (h *Handler) DeleteGoal(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    query := `DELETE FROM saving_goals WHERE id = $1 AND user_id = $2`
+    query := `UPDATE saving_goals SET is_active = FALSE WHERE id = $1 AND user_id = $2 AND is_active = TRUE`
     result, err := h.db.ExecContext(r.Context(), query, goalID, userID)
     if err != nil {
         h.respondWithError(w, http.StatusInternalServerError, "No se pudo eliminar la meta de ahorro")

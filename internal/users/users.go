@@ -116,7 +116,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Consulta parametrizada para obtener los datos del usuario
-	query := `SELECT id, email, password_hash, created_at FROM users WHERE email = $1`
+	query := `SELECT id, email, password_hash, created_at FROM users WHERE email = $1 AND is_active = TRUE`
 	var user User
 	err := h.db.QueryRowContext(r.Context(), query, creds.Email).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.CreatedAt)
 	if err != nil {
